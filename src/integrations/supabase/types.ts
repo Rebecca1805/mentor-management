@@ -71,6 +71,50 @@ export type Database = {
         }
         Relationships: []
       }
+      observacoes_mentora: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_aluna: number
+          observacoes: string | null
+          plano_acao: string
+          prazo_execucao: string | null
+          status: Database["public"]["Enums"]["observacao_status"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_aluna: number
+          observacoes?: string | null
+          plano_acao: string
+          prazo_execucao?: string | null
+          status?: Database["public"]["Enums"]["observacao_status"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_aluna?: number
+          observacoes?: string | null
+          plano_acao?: string
+          prazo_execucao?: string | null
+          status?: Database["public"]["Enums"]["observacao_status"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observacoes_mentora_id_aluna_fkey"
+            columns: ["id_aluna"]
+            isOneToOne: false
+            referencedRelation: "alunas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos_acao: {
         Row: {
           created_at: string | null
@@ -180,6 +224,11 @@ export type Database = {
     }
     Enums: {
       curso_status: "nao_iniciado" | "em_andamento" | "pausado" | "concluido"
+      observacao_status:
+        | "iniciado"
+        | "em_andamento"
+        | "cancelado"
+        | "interrompido"
       plano_status: "iniciado" | "em_andamento" | "cancelado" | "interrompido"
     }
     CompositeTypes: {
@@ -309,6 +358,12 @@ export const Constants = {
   public: {
     Enums: {
       curso_status: ["nao_iniciado", "em_andamento", "pausado", "concluido"],
+      observacao_status: [
+        "iniciado",
+        "em_andamento",
+        "cancelado",
+        "interrompido",
+      ],
       plano_status: ["iniciado", "em_andamento", "cancelado", "interrompido"],
     },
   },

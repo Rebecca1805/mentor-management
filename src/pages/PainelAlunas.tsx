@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useAluna, useCreateAluna, useUpdateAluna, useAlunas, CursoAdquirido, ObservacaoMentora, getCursosConcluidos } from "@/hooks/useAlunas";
+import { useAluna, useCreateAluna, useUpdateAluna, useAlunas, CursoAdquirido, getCursosConcluidos } from "@/hooks/useAlunas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +60,6 @@ export default function PainelAlunas() {
     status: "Ativa",
     principais_dificuldades: [] as string[],
     observacoes_mentora: "",
-    observacoes_mentora_tabela: [] as ObservacaoMentora[],
     data_primeira_compra: "",
     data_ultima_compra: "",
     tempo_base: 0,
@@ -76,7 +75,6 @@ export default function PainelAlunas() {
         status: aluna.status,
         principais_dificuldades: aluna.principais_dificuldades || [],
         observacoes_mentora: aluna.observacoes_mentora || "",
-        observacoes_mentora_tabela: aluna.observacoes_mentora_tabela || [],
         data_primeira_compra: aluna.data_primeira_compra || "",
         data_ultima_compra: aluna.data_ultima_compra || "",
         tempo_base: aluna.tempo_base,
@@ -149,7 +147,6 @@ export default function PainelAlunas() {
       status: "Ativa",
       principais_dificuldades: [],
       observacoes_mentora: "",
-      observacoes_mentora_tabela: [],
       data_primeira_compra: "",
       data_ultima_compra: "",
       tempo_base: 0,
@@ -441,13 +438,12 @@ export default function PainelAlunas() {
                 </div>
 
                 {/* Observações da Mentora - Tabela */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Planos de Ação e Observações</h3>
-                  <ObservacoesTable
-                    observacoes={formData.observacoes_mentora_tabela}
-                    onChange={(obs) => setFormData({ ...formData, observacoes_mentora_tabela: obs })}
-                  />
-                </div>
+                {(isEdit && id) && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Planos de Ação e Observações</h3>
+                    <ObservacoesTable idAluna={Number(id)} />
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-6 border-t">
                   <Button type="submit" className="btn-gradient" disabled={createAluna.isPending || updateAluna.isPending}>

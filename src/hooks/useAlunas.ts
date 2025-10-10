@@ -7,12 +7,7 @@ export interface CursoAdquirido {
   status: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
 }
 
-export interface ObservacaoMentora {
-  plano_acao: string;
-  prazo_execucao: string;
-  status: 'iniciado' | 'em_andamento' | 'cancelado' | 'interrompido';
-  observacoes: string;
-}
+// ObservacaoMentora moved to useObservacoesMentora.ts
 
 export interface Aluna {
   id: number;
@@ -27,7 +22,6 @@ export interface Aluna {
   status: string;
   principais_dificuldades: string[];
   observacoes_mentora: string | null;
-  observacoes_mentora_tabela: ObservacaoMentora[];
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -81,12 +75,6 @@ export const useAlunas = () => {
         principais_dificuldades: Array.isArray(aluna.principais_dificuldades)
           ? aluna.principais_dificuldades
           : [],
-        observacoes_mentora_tabela: (aluna.observacoes_mentora_tabela as any[])?.map((o: any) => ({
-          plano_acao: o.plano_acao || '',
-          prazo_execucao: o.prazo_execucao || '',
-          status: o.status || 'iniciado',
-          observacoes: o.observacoes || ''
-        })) || [],
       })) as Aluna[];
     },
   });
@@ -114,12 +102,6 @@ export const useAluna = (id?: number) => {
         principais_dificuldades: Array.isArray(data.principais_dificuldades)
           ? data.principais_dificuldades
           : [],
-        observacoes_mentora_tabela: (data.observacoes_mentora_tabela as any[])?.map((o: any) => ({
-          plano_acao: o.plano_acao || '',
-          prazo_execucao: o.prazo_execucao || '',
-          status: o.status || 'iniciado',
-          observacoes: o.observacoes || ''
-        })) || [],
       } as Aluna;
     },
     enabled: !!id,

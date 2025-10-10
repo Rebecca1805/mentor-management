@@ -14,6 +14,7 @@ import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { VendaDialog } from "@/components/VendaDialog";
+import { ObservacoesTable } from "@/components/ObservacoesTable";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -183,6 +184,17 @@ export default function AlunaDetalhes() {
                   <p className="text-sm">{aluna.observacoes_mentora}</p>
                 </div>
               )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="observacoes" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
+          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+            Observações e Planos da Mentora
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="pt-4">
+              <ObservacoesTable idAluna={Number(id)} />
             </div>
           </AccordionContent>
         </AccordionItem>
