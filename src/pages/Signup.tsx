@@ -39,19 +39,19 @@ export default function Signup() {
         transition={{ duration: 0.5 }}
       >
         <Card className="w-full max-w-md card-premium">
-          <CardHeader className="text-center space-y-2">
+          <CardHeader className="text-center space-y-3">
             <div className="mx-auto w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-2">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <CardTitle className="text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
               Criar Conta
             </CardTitle>
-            <CardDescription>Cadastre-se para começar sua jornada</CardDescription>
+            <CardDescription className="font-light">Cadastre-se para começar sua jornada</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <Label htmlFor="fullName" className="font-light">Nome Completo</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -63,7 +63,7 @@ export default function Signup() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-light">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -75,7 +75,7 @@ export default function Signup() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password" className="font-light">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -95,9 +95,9 @@ export default function Signup() {
                 {loading ? "Criando conta..." : "Criar Conta"}
               </Button>
             </form>
-            <p className="text-center text-sm text-muted-foreground mt-4">
+            <p className="text-center text-sm text-muted-foreground mt-6 font-light">
               Já tem uma conta?{" "}
-              <Link to="/login" className="text-primary hover:underline font-medium">
+              <Link to="/login" className="text-primary hover:underline font-light">
                 Entrar
               </Link>
             </p>

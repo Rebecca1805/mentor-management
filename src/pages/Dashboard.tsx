@@ -111,10 +111,10 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-2"
       >
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
           Dashboard
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground font-light">
           Acompanhe o progresso das suas mentoradas
         </p>
       </motion.div>
@@ -127,14 +127,14 @@ export default function Dashboard() {
           transition={{ delay: 0.1 }}
         >
           <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-sm text-muted-foreground font-light">
                 Total de Alunas
               </CardTitle>
-              <Users className="h-4 w-4 text-primary" />
+              <Users className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-primary">{stats.total}</div>
+              <div className="text-3xl text-primary font-poppins" style={{ fontWeight: 700 }}>{stats.total}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -145,15 +145,15 @@ export default function Dashboard() {
           transition={{ delay: 0.2 }}
         >
           <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-sm text-muted-foreground font-light">
                 Alunas Ativas
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-success" />
+              <TrendingUp className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-success">{Math.round(stats.percentualAtivas)}%</div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>{Math.round(stats.percentualAtivas)}%</div>
+              <p className="text-xs text-muted-foreground mt-1 font-light">
                 {stats.ativas} de {stats.total}
               </p>
             </CardContent>
@@ -166,15 +166,15 @@ export default function Dashboard() {
           transition={{ delay: 0.3 }}
         >
           <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-sm text-muted-foreground font-light">
                 Tempo Médio
               </CardTitle>
-              <Clock className="h-4 w-4 text-secondary" />
+              <Clock className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-secondary">{stats.tempoMedio}</div>
-              <p className="text-xs text-muted-foreground mt-1">dias na base</p>
+              <div className="text-3xl text-secondary font-poppins" style={{ fontWeight: 700 }}>{stats.tempoMedio}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-light">dias na base</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -185,14 +185,14 @@ export default function Dashboard() {
           transition={{ delay: 0.4 }}
         >
           <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-sm text-muted-foreground font-light">
                 Cursos Diferentes
               </CardTitle>
-              <PieChartIcon className="h-4 w-4 text-accent" />
+              <PieChartIcon className="h-5 w-5 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-accent">{cursosUnicos.length}</div>
+              <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>{cursosUnicos.length}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -207,7 +207,7 @@ export default function Dashboard() {
         >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle>Distribuição por Status</CardTitle>
+              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Distribuição por Status</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
@@ -240,7 +240,7 @@ export default function Dashboard() {
         >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle>Taxa de Conclusão (Top 10)</CardTitle>
+              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Taxa de Conclusão (Top 10)</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
@@ -263,7 +263,7 @@ export default function Dashboard() {
         >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle>Evolução de Alunas</CardTitle>
+              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Evolução de Alunas</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>

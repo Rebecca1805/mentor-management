@@ -47,19 +47,19 @@ export default function Login() {
         transition={{ duration: 0.5 }}
       >
         <Card className="w-full max-w-md card-premium">
-          <CardHeader className="text-center space-y-2">
+          <CardHeader className="text-center space-y-3">
             <div className="mx-auto w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-2">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Mentorias Femininas
+            <CardTitle className="text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
+              MentorManagement
             </CardTitle>
-            <CardDescription>Entre para acessar sua plataforma de mentoria</CardDescription>
+            <CardDescription className="font-light">Entre para acessar sua plataforma de mentoria</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-light">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -71,7 +71,7 @@ export default function Login() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password" className="font-light">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -91,9 +91,9 @@ export default function Login() {
               </Button>
             </form>
             
-            <div className="relative my-4">
+            <div className="relative my-6">
               <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground font-light">
                 ou
               </span>
             </div>
@@ -125,9 +125,9 @@ export default function Login() {
               Continuar com Google
             </Button>
             
-            <p className="text-center text-sm text-muted-foreground mt-4">
+            <p className="text-center text-sm text-muted-foreground mt-6 font-light">
               Não tem uma conta?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
+              <Link to="/signup" className="text-primary hover:underline font-light">
                 Cadastre-se
               </Link>
             </p>
