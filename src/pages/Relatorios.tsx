@@ -1,4 +1,4 @@
-import { useAlunas, useVendas } from "@/hooks/useAlunas";
+import { useAlunas, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ export default function Relatorios() {
         aluna.nome,
         aluna.email,
         aluna.status,
-        aluna.cursos_concluidos,
+        getCursosConcluidos(aluna),
         aluna.tempo_base,
         receitaAluna.toFixed(2)
       ];

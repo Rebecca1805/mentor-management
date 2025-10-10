@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useAluna, usePlanosAcao, useVendas } from "@/hooks/useAlunas";
+import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
 import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,9 @@ export default function AlunaDetalhes() {
     return <div className="p-8">Aluna não encontrada</div>;
   }
 
+  const cursosConcluidos = getCursosConcluidos(aluna);
   const progressoCursos = aluna.cursos_adquiridos.length > 0
-    ? (aluna.cursos_concluidos / aluna.cursos_adquiridos.length) * 100
+    ? (cursosConcluidos / aluna.cursos_adquiridos.length) * 100
     : 0;
 
   const vendasPorPeriodo = vendas.reduce((acc, venda) => {
@@ -110,13 +111,23 @@ export default function AlunaDetalhes() {
               </div>
               <div className="grid gap-2">
                 {aluna.cursos_adquiridos.map((curso, idx) => (
-                  <div key={idx} className="bg-background/50 rounded-lg p-3">
-                    {curso}
+                  <div key={idx} className="bg-background/50 rounded-lg p-3 flex justify-between items-center">
+                    <span className="font-medium">{curso.nome}</span>
+                    <Badge variant={
+                      curso.status === 'concluido' ? 'default' : 
+                      curso.status === 'em_andamento' ? 'secondary' : 
+                      'outline'
+                    }>
+                      {curso.status === 'concluido' ? 'Concluído' :
+                       curso.status === 'em_andamento' ? 'Em Andamento' :
+                       curso.status === 'pausado' ? 'Pausado' :
+                       'Não Iniciado'}
+                    </Badge>
                   </div>
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">
-                {aluna.cursos_concluidos} de {aluna.cursos_adquiridos.length} cursos concluídos
+                {cursosConcluidos} de {aluna.cursos_adquiridos.length} cursos concluídos
               </p>
             </div>
           </AccordionContent>

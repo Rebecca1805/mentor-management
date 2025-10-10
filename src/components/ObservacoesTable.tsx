@@ -4,13 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
-interface ObservacaoMentora {
-  plano_acao: string;
-  prazo_execucao: string;
-  status: string;
-  observacoes: string;
-}
+import { ObservacaoMentora } from "@/hooks/useAlunas";
 
 interface ObservacoesTableProps {
   observacoes: ObservacaoMentora[];
