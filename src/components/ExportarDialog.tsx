@@ -16,9 +16,9 @@ interface ExportarDialogProps {
 }
 
 export const ExportarDialog = ({ open, onOpenChange, aluna, vendas, observacoes }: ExportarDialogProps) => {
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
-      exportToPDF(aluna, vendas, observacoes);
+      await exportToPDF(aluna, vendas, observacoes);
       toast.success("PDF exportado com sucesso!");
       onOpenChange(false);
     } catch (error) {

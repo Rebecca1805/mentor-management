@@ -1,5 +1,4 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
 import { Aluna, getCursosConcluidos } from "@/hooks/useAlunas";
 import { Venda } from "@/hooks/useAlunas";
 import { ObservacaoMentora } from "@/hooks/useObservacoesMentora";
@@ -18,11 +17,18 @@ const CURSO_STATUS_LABELS = {
   concluido: "Concluído",
 };
 
-export const exportToPDF = (
+// Import autoTable separately to avoid bundling issues
+const loadAutoTable = async () => {
+  const autoTableModule = await import("jspdf-autotable");
+  return autoTableModule.default;
+};
+
+export const exportToPDF = async (
   aluna: Aluna,
   vendas: Venda[],
   observacoes: ObservacaoMentora[]
 ) => {
+  const autoTable = await loadAutoTable();
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   let yPosition = 20;
