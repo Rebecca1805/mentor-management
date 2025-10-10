@@ -10,7 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AlunaDetalhes from "./pages/AlunaDetalhes";
-import AlunaForm from "./pages/AlunaForm";
+import PainelAlunas from "./pages/PainelAlunas";
 import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
 
@@ -29,8 +29,8 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/aluna/:id" element={<ProtectedRoute><Layout><AlunaDetalhes /></Layout></ProtectedRoute>} />
-            <Route path="/aluna/adicionar" element={<ProtectedRoute><Layout><AlunaForm /></Layout></ProtectedRoute>} />
-            <Route path="/aluna/editar/:id" element={<ProtectedRoute><Layout><AlunaForm /></Layout></ProtectedRoute>} />
+            <Route path="/painel-alunas" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
+            <Route path="/painel-alunas/:id" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Layout><Relatorios /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
