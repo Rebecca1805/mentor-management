@@ -1,94 +1,244 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useAlunas, getCursosConcluidos } from "@/hooks/useAlunas";
-import { AlunaCard } from "@/components/AlunaCard";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAlunas } from "@/hooks/useAlunas";
+import { useVendas as useVendasHook } from "@/hooks/useAlunas";
+import { DashboardFilters } from "@/components/DashboardFilters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, TrendingUp, Clock, PieChart as PieChartIcon } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DollarSign, TrendingUp, Clock, PieChart as PieChartIcon, Info } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { isWithinInterval, parseISO } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
 export default function Dashboard() {
-  const { data: alunas, isLoading } = useAlunas();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [cursoFilter, setCursoFilter] = useState<string>("all");
+  const { data: alunas, isLoading: isLoadingAlunas } = useAlunas();
+  const { data: vendas, isLoading: isLoadingVendas } = useVendasHook();
+  
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [selectedAlunas, setSelectedAlunas] = useState<number[]>([]);
+  const [selectedCursos, setSelectedCursos] = useState<string[]>([]);
+  const [showOnlyAtivas, setShowOnlyAtivas] = useState(false);
+
+  const isLoading = isLoadingAlunas || isLoadingVendas;
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
 
     return alunas.filter((aluna) => {
-      const matchesSearch = aluna.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          aluna.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || aluna.status === statusFilter;
-      const matchesCurso = cursoFilter === "all" || aluna.curso_atual === cursoFilter;
+      // Date range filter (data_cadastro)
+      if (dateRange.from || dateRange.to) {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            if (!isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to })) {
+              return false;
+            }
+          } else if (dateRange.from) {
+            if (cadastroDate < dateRange.from) return false;
+          } else if (dateRange.to) {
+            if (cadastroDate > dateRange.to) return false;
+          }
+        } catch (e) {
+          return false;
+        }
+      }
 
-      return matchesSearch && matchesStatus && matchesCurso;
+      // Status filter
+      if (selectedStatus.length > 0 && !selectedStatus.includes(aluna.status)) {
+        return false;
+      }
+
+      // Aluna filter
+      if (selectedAlunas.length > 0 && !selectedAlunas.includes(aluna.id)) {
+        return false;
+      }
+
+      // Curso filter
+      if (selectedCursos.length > 0) {
+        const alunasCursos = aluna.cursos_adquiridos.map(c => c.nome);
+        if (!selectedCursos.some(curso => alunasCursos.includes(curso))) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [alunas, searchTerm, statusFilter, cursoFilter]);
+  }, [alunas, dateRange, selectedStatus, selectedAlunas, selectedCursos]);
 
   const cursosUnicos = useMemo(() => {
     if (!alunas) return [];
-    const cursos = new Set(alunas.map(a => a.curso_atual).filter(Boolean));
-    return Array.from(cursos) as string[];
+    const cursos = new Set<string>();
+    alunas.forEach(aluna => {
+      aluna.cursos_adquiridos.forEach(curso => {
+        cursos.add(curso.nome);
+      });
+    });
+    return Array.from(cursos).sort();
   }, [alunas]);
 
   const stats = useMemo(() => {
-    if (!alunas) return { total: 0, ativas: 0, percentualAtivas: 0, tempoMedio: 0 };
+    if (!filteredAlunas || !vendas) {
+      return {
+        faturamentoAtivas: 0,
+        faturamentoTotal: 0,
+        percentualAtivas: 0,
+        tempoMedio: 0,
+      };
+    }
 
-    const ativas = alunas.filter(a => a.status === "Ativa").length;
-    const tempoMedio = alunas.reduce((acc, a) => acc + a.tempo_base, 0) / alunas.length;
+    const alunasAtivas = filteredAlunas.filter(a => a.status === "Ativa");
+    const idsAtivas = new Set(alunasAtivas.map(a => a.id));
+    const idsTotal = new Set(filteredAlunas.map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas;
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendas.filter(venda => {
+        try {
+          // Parse periodo (formato YYYY-MM ou similar)
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const faturamentoAtivas = vendasFiltradas
+      .filter(v => idsAtivas.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const faturamentoTotal = vendasFiltradas
+      .filter(v => idsTotal.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const tempoMedio = filteredAlunas.length > 0
+      ? filteredAlunas.reduce((acc, a) => acc + a.tempo_base, 0) / filteredAlunas.length
+      : 0;
+
+    const percentualAtivas = filteredAlunas.length > 0
+      ? (alunasAtivas.length / filteredAlunas.length) * 100
+      : 0;
 
     return {
-      total: alunas.length,
-      ativas,
-      percentualAtivas: (ativas / alunas.length) * 100,
+      faturamentoAtivas,
+      faturamentoTotal,
+      percentualAtivas,
       tempoMedio: Math.round(tempoMedio),
     };
-  }, [alunas]);
+  }, [filteredAlunas, vendas, dateRange]);
 
   const statusData = useMemo(() => {
-    if (!alunas) return [];
-    const ativas = alunas.filter(a => a.status === "Ativa").length;
-    const inativas = alunas.length - ativas;
+    if (!filteredAlunas) return [];
+    const ativas = filteredAlunas.filter(a => a.status === "Ativa").length;
+    const inativas = filteredAlunas.length - ativas;
     return [
       { name: "Ativas", value: ativas },
       { name: "Inativas", value: inativas },
     ];
-  }, [alunas]);
+  }, [filteredAlunas]);
 
-  const progressoData = useMemo(() => {
-    if (!alunas) return [];
-    const progresso = alunas.map(a => ({
-      nome: a.nome.split(" ")[0],
-      percentual: a.cursos_adquiridos.length > 0
-        ? (getCursosConcluidos(a) / a.cursos_adquiridos.length) * 100
-        : 0
-    }));
-    return progresso.slice(0, 10);
-  }, [alunas]);
+  const faturamentoPorPeriodo = useMemo(() => {
+    if (!vendas || !filteredAlunas) return [];
+
+    const idsAlunas = new Set(filteredAlunas.map(a => a.id));
+    const idsAtivas = new Set(filteredAlunas.filter(a => a.status === "Ativa").map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas.filter(v => idsAlunas.has(v.id_aluna));
+    
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendasFiltradas.filter(venda => {
+        try {
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const porPeriodo = vendasFiltradas.reduce((acc, venda) => {
+      const periodo = venda.periodo;
+      if (!acc[periodo]) {
+        acc[periodo] = { periodo, ativas: 0, todas: 0 };
+      }
+      const valor = venda.valor_vendido;
+      acc[periodo].todas += valor;
+      if (idsAtivas.has(venda.id_aluna)) {
+        acc[periodo].ativas += valor;
+      }
+      return acc;
+    }, {} as Record<string, { periodo: string; ativas: number; todas: number }>);
+
+    return Object.values(porPeriodo)
+      .sort((a, b) => a.periodo.localeCompare(b.periodo))
+      .slice(-12); // últimos 12 períodos
+  }, [vendas, filteredAlunas, dateRange]);
 
   const evolucaoData = useMemo(() => {
     if (!alunas) return [];
     
-    const porMes = alunas.reduce((acc, aluna) => {
-      if (aluna.data_primeira_compra) {
-        const mes = aluna.data_primeira_compra.substring(0, 7);
-        acc[mes] = (acc[mes] || 0) + 1;
-      }
+    // Group by data_cadastro
+    let alunasParaEvolucao = alunas;
+    
+    // Apply date range filter
+    if (dateRange.from || dateRange.to) {
+      alunasParaEvolucao = alunas.filter(aluna => {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return cadastroDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return cadastroDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+    
+    const porMes = alunasParaEvolucao.reduce((acc, aluna) => {
+      const mes = aluna.data_cadastro.substring(0, 7);
+      acc[mes] = (acc[mes] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    return Object.entries(porMes)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([mes, quantidade]) => ({
-        mes,
-        quantidade,
-      }));
-  }, [alunas]);
+    // Cumulative count
+    const sorted = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
+    let cumulative = 0;
+    
+    return sorted.map(([mes, quantidade]) => {
+      cumulative += quantidade;
+      return { mes, quantidade: cumulative };
+    });
+  }, [alunas, dateRange]);
 
   if (isLoading) {
     return (
@@ -103,114 +253,318 @@ export default function Dashboard() {
     );
   }
 
+  const handleResetFilters = () => {
+    setDateRange({ from: undefined, to: undefined } as DateRange);
+    setSelectedStatus([]);
+    setSelectedAlunas([]);
+    setSelectedCursos([]);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-2"
-      >
-        <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground font-light">
-          Acompanhe o progresso das suas mentoradas
-        </p>
-      </motion.div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
         >
-          <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm text-muted-foreground font-light">
-                Total de Alunas
-              </CardTitle>
-              <Users className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl text-primary font-poppins" style={{ fontWeight: 700 }}>{stats.total}</div>
-            </CardContent>
-          </Card>
+          <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground font-light">
+            Visão completa do faturamento e evolução da base de alunas
+          </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm text-muted-foreground font-light">
-                Alunas Ativas
-              </CardTitle>
-              <TrendingUp className="h-5 w-5 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>{Math.round(stats.percentualAtivas)}%</div>
-              <p className="text-xs text-muted-foreground mt-1 font-light">
-                {stats.ativas} de {stats.total}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Filters */}
+        <DashboardFilters
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          selectedAlunas={selectedAlunas}
+          onAlunasChange={setSelectedAlunas}
+          selectedCursos={selectedCursos}
+          onCursosChange={setSelectedCursos}
+          availableAlunas={alunas?.map(a => ({ id: a.id, nome: a.nome })) || []}
+          availableCursos={cursosUnicos}
+          onReset={handleResetFilters}
+        />
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm text-muted-foreground font-light">
-                Tempo Médio
-              </CardTitle>
-              <Clock className="h-5 w-5 text-secondary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl text-secondary font-poppins" style={{ fontWeight: 700 }}>{stats.tempoMedio}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-light">dias na base</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Faturamento Alunas Ativas - Destaque */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="md:col-span-2 lg:col-span-1"
+          >
+            <Card className="card-premium border-primary/30 shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Ativas
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Faturamento total de alunas ativas no período</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-primary font-poppins" style={{ fontWeight: 700 }}>
+                  R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <Badge variant="secondary" className="mt-2 font-light text-xs">
+                  Destaque Principal
+                </Badge>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card className="card-premium">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm text-muted-foreground font-light">
-                Cursos Diferentes
-              </CardTitle>
-              <PieChartIcon className="h-5 w-5 text-accent" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>{cursosUnicos.length}</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+          {/* Faturamento Total - Estilo suave */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="card-premium opacity-75 hover:opacity-100 transition-opacity">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Total
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Inclui ativas e inativas no período</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-secondary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl text-secondary/80 font-poppins" style={{ fontWeight: 600 }}>
+                  R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  Ativas + Inativas
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* % Alunas Ativas */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  % Alunas Ativas
+                </CardTitle>
+                <TrendingUp className="h-5 w-5 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>
+                  {Math.round(stats.percentualAtivas)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  vs Inativas
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Tempo Médio */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  Tempo Médio
+                </CardTitle>
+                <Clock className="h-5 w-5 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>
+                  {stats.tempoMedio}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  dias na base
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Evolução de Alunas - Linha */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-poppins font-light text-lg">
+                    Evolução de Alunas na Base
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Total acumulado de alunas por mês de cadastro</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={evolucaoData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="mes" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="quantidade" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      name="Alunas"
+                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Faturamento por Período - Barras */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-poppins font-light text-lg">
+                    Faturamento por Período
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="only-ativas"
+                      checked={showOnlyAtivas}
+                      onCheckedChange={(checked) => setShowOnlyAtivas(checked as boolean)}
+                    />
+                    <label htmlFor="only-ativas" className="text-xs font-light cursor-pointer">
+                      Apenas Ativas
+                    </label>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={faturamentoPorPeriodo}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="periodo" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                      formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    {!showOnlyAtivas && (
+                      <Bar 
+                        dataKey="todas" 
+                        fill="hsl(var(--secondary))" 
+                        name="Todas"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    )}
+                    {showOnlyAtivas && (
+                      <Bar 
+                        dataKey="ativas" 
+                        fill="hsl(var(--primary))" 
+                        name="Ativas"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    )}
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+        </div>
+
+        {/* Distribuição por Status - Pizza */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.7 }}
+          className="max-w-md mx-auto"
         >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Distribuição por Status</CardTitle>
+              <CardTitle className="font-poppins font-light text-lg">
+                Distribuição por Status
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={statusData}
@@ -218,7 +572,7 @@ export default function Dashboard() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -226,120 +580,22 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <RechartsTooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 300,
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Taxa de Conclusão (Top 10)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={progressoData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nome" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="percentual" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="font-poppins" style={{ fontWeight: 700 }}>Evolução de Alunas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={evolucaoData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="quantidade" stroke="hsl(var(--secondary))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
+    </TooltipProvider>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="flex flex-col sm:flex-row gap-4"
-      >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 rounded-xl"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48 rounded-xl">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Status</SelectItem>
-            <SelectItem value="Ativa">Ativa</SelectItem>
-            <SelectItem value="Inativa">Inativa</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={cursoFilter} onValueChange={setCursoFilter}>
-          <SelectTrigger className="w-full sm:w-48 rounded-xl">
-            <SelectValue placeholder="Curso" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Cursos</SelectItem>
-            {cursosUnicos.map((curso) => (
-              <SelectItem key={curso} value={curso}>
-                {curso}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </motion.div>
-
-      {/* Alunas Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredAlunas.map((aluna, index) => (
-          <AlunaCard key={aluna.id} aluna={aluna} index={index} />
-        ))}
-      </div>
-
-      {filteredAlunas.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-12"
-        >
-          <p className="text-muted-foreground">
-            Nenhuma aluna encontrada com os filtros selecionados.
-          </p>
-        </motion.div>
-      )}
-    </div>
   );
 }
