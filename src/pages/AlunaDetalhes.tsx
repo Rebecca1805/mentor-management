@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { VendaDialog } from "@/components/VendaDialog";
@@ -117,10 +117,16 @@ export default function AlunaDetalhes() {
               </div>
             </div>
           </div>
-          <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(`/aluna/${id}/ficha`)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Ver Ficha
+            </Button>
+            <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+          </div>
         </div>
 
         {aluna.curso_atual && (
