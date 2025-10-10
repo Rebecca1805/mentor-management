@@ -71,41 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      fichas_compartilhadas: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          id: string
-          id_aluna: number
-          token: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          id_aluna: number
-          token: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          id_aluna?: number
-          token?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fichas_compartilhadas_id_aluna_fkey"
-            columns: ["id_aluna"]
-            isOneToOne: false
-            referencedRelation: "alunas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       observacoes_mentora: {
         Row: {
           created_at: string | null

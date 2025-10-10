@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos, Venda } from "@/hooks/useAlunas";
 import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
 import { useCreateVenda, useUpdateVenda, useDeleteVenda } from "@/hooks/useVendas";
-import { useObservacoesMentora } from "@/hooks/useObservacoesMentora";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -11,10 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Edit, Plus, Trash2, Share2, Download } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { VendaDialog } from "@/components/VendaDialog";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 
@@ -24,7 +22,6 @@ export default function AlunaDetalhes() {
   const { data: aluna, isLoading } = useAluna(Number(id));
   const { data: planos = [] } = usePlanosAcao(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
-  const { data: observacoes = [] } = useObservacoesMentora(Number(id));
   const updatePlano = useUpdatePlanoAcao();
   const createVenda = useCreateVenda();
   const updateVenda = useUpdateVenda();
@@ -120,34 +117,10 @@ export default function AlunaDetalhes() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" disabled>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Compartilhar
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Ative a exportação primeiro</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" disabled>
-                  <Download className="mr-2 h-4 w-4" />
-                  Exportar
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Ative a exportação primeiro</p>
-              </TooltipContent>
-            </Tooltip>
-            <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-          </div>
+          <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar
+          </Button>
         </div>
 
         {aluna.curso_atual && (
@@ -324,7 +297,7 @@ export default function AlunaDetalhes() {
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="periodo" className="text-xs" />
                             <YAxis className="text-xs" />
-                            <ChartTooltip 
+                            <Tooltip 
                               formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                             />
                             <Legend />
