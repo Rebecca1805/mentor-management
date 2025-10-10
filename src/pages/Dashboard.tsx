@@ -243,10 +243,30 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-32 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-64" />
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-3 pt-6">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-[300px] w-full" />
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
@@ -296,30 +316,35 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Faturamento Alunas Ativas - Destaque */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
             className="md:col-span-2 lg:col-span-1"
           >
-            <Card className="card-premium border-primary/30 shadow-lg">
+            <Card className="card-premium border-primary/30 shadow-lg hover:shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm text-muted-foreground font-light">
                     Faturamento Ativas
                   </CardTitle>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento de alunas ativas"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Faturamento total de alunas ativas no período</p>
+                      <p className="text-xs font-light">Faturamento total de alunas ativas no período selecionado</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <DollarSign className="h-5 w-5 text-primary" />
+                <DollarSign className="h-5 w-5 text-primary" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl text-primary font-poppins" style={{ fontWeight: 700 }}>
+                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunas ativas: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
                   R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <Badge variant="secondary" className="mt-2 font-light text-xs">
@@ -331,29 +356,34 @@ export default function Dashboard() {
 
           {/* Faturamento Total - Estilo suave */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.15, duration: 0.2 }}
           >
-            <Card className="card-premium opacity-75 hover:opacity-100 transition-opacity">
+            <Card className="card-premium opacity-75 hover:opacity-100">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm text-muted-foreground font-light">
                     Faturamento Total
                   </CardTitle>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento total"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Inclui ativas e inativas no período</p>
+                      <p className="text-xs font-light">Inclui ativas e inativas no período selecionado</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <DollarSign className="h-5 w-5 text-secondary" />
+                <DollarSign className="h-5 w-5 text-secondary" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl text-secondary/80 font-poppins" style={{ fontWeight: 600 }}>
+                <div className="text-2xl text-secondary/80 font-poppins font-light" aria-label={`Faturamento total: R$ ${stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
                   R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 font-light">

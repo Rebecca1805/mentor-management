@@ -81,45 +81,88 @@ All colors MUST be HSL.
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
     font-family: 'Poppins', sans-serif;
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
   h1 {
     @apply text-4xl md:text-5xl lg:text-6xl;
+    font-weight: 200;
   }
 
   h2 {
     @apply text-3xl md:text-4xl lg:text-5xl;
+    font-weight: 300;
   }
 
   h3 {
     @apply text-2xl md:text-3xl;
+    font-weight: 300;
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Smooth animations */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 }
 
 @layer components {
   .card-premium {
-    @apply rounded-2xl bg-card/80 backdrop-blur-sm border shadow-sm transition-all duration-300;
+    @apply rounded-2xl bg-card/80 backdrop-blur-sm border shadow-sm;
     border-width: 1px;
     padding: 1.5rem;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .card-premium:hover {
-    @apply shadow-md translate-y-[-2px];
+    @apply shadow-md;
+    transform: translateY(-2px);
   }
 
   .btn-gradient {
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    @apply text-white rounded-xl px-6 py-3 transition-all duration-300 shadow-sm;
+    @apply text-white rounded-xl px-6 py-3 shadow-sm;
     font-weight: 300;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .btn-gradient:hover {
-    @apply shadow-md scale-[1.02];
+    @apply shadow-md;
+    transform: scale(1.02);
+  }
+
+  .btn-gradient:active {
+    transform: scale(0.98);
   }
 
   .badge-status {
     @apply inline-flex items-center rounded-full px-3 py-1 text-xs ring-1 ring-inset;
     font-weight: 300;
+  }
+
+  /* Empty states */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 px-4 text-center;
+  }
+
+  .empty-state-icon {
+    @apply w-16 h-16 text-muted-foreground/40 mb-4;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-light text-foreground mb-2;
+  }
+
+  .empty-state-description {
+    @apply text-sm text-muted-foreground font-light max-w-sm;
   }
 }
