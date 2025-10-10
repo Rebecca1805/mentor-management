@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
+import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos, Venda } from "@/hooks/useAlunas";
 import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
+import { useCreateVenda, useUpdateVenda, useDeleteVenda } from "@/hooks/useVendas";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Edit, Plus } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { VendaDialog } from "@/components/VendaDialog";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -17,6 +22,13 @@ export default function AlunaDetalhes() {
   const { data: planos = [] } = usePlanosAcao(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
   const updatePlano = useUpdatePlanoAcao();
+  const createVenda = useCreateVenda();
+  const updateVenda = useUpdateVenda();
+  const deleteVenda = useDeleteVenda();
+
+  const [vendaDialogOpen, setVendaDialogOpen] = useState(false);
+  const [editingVenda, setEditingVenda] = useState<Venda | null>(null);
+  const [deletingVendaId, setDeletingVendaId] = useState<number | null>(null);
 
   if (isLoading) {
     return <div className="p-8">Carregando...</div>;
@@ -41,12 +53,35 @@ export default function AlunaDetalhes() {
     return acc;
   }, [] as { periodo: string; valor: number }[]);
 
+  const totalVendas = vendas.reduce((sum, v) => sum + v.valor_vendido, 0);
+
   const toggleEtapa = (planoId: number, etapa: string, etapasConcluidas: string[]) => {
     const novasEtapas = etapasConcluidas.includes(etapa)
       ? etapasConcluidas.filter(e => e !== etapa)
       : [...etapasConcluidas, etapa];
     
     updatePlano.mutate({ id: planoId, etapas_concluidas: novasEtapas });
+  };
+
+  const handleSaveVenda = (vendaData: Omit<Venda, 'id' | 'user_id' | 'created_at'>) => {
+    if (editingVenda) {
+      updateVenda.mutate({ id: editingVenda.id, ...vendaData });
+    } else {
+      createVenda.mutate(vendaData);
+    }
+    setEditingVenda(null);
+  };
+
+  const handleEditVenda = (venda: Venda) => {
+    setEditingVenda(venda);
+    setVendaDialogOpen(true);
+  };
+
+  const handleDeleteVenda = () => {
+    if (deletingVendaId) {
+      deleteVenda.mutate(deletingVendaId);
+      setDeletingVendaId(null);
+    }
   };
 
   return (
@@ -215,54 +250,148 @@ export default function AlunaDetalhes() {
 
         <AccordionItem value="vendas" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
           <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Resultados e Vendas
+            Vendas ({vendas.length})
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
-              {vendasPorPeriodo.length > 0 && (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={vendasPorPeriodo}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="periodo" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip />
-                      <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+              {/* Header com Total e Botão */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total de Vendas</p>
+                  <p className="text-3xl font-bold text-primary">
+                    R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
-              )}
-              <div className="space-y-3">
-                {vendas.map((venda) => (
-                  <div key={venda.id} className="bg-background/50 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold">Período: {venda.periodo}</p>
-                        <p className="text-2xl font-bold text-primary">
-                          R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
+                <Button onClick={() => { setEditingVenda(null); setVendaDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Venda
+                </Button>
+              </div>
+
+              {vendas.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma venda registrada ainda.
+                </div>
+              ) : (
+                <>
+                  {/* Layout: Gráfico e Tabela */}
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Gráfico */}
+                    <div className="order-2 lg:order-1">
+                      <h4 className="text-sm font-semibold mb-4">Evolução de Vendas</h4>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={vendasPorPeriodo}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="periodo" className="text-xs" />
+                            <YAxis className="text-xs" />
+                            <Tooltip 
+                              formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                            />
+                            <Legend />
+                            <Line 
+                              type="monotone" 
+                              dataKey="valor" 
+                              stroke="hsl(var(--primary))" 
+                              strokeWidth={2}
+                              name="Valor"
+                              dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
                       </div>
                     </div>
-                    {venda.produtos.length > 0 && (
-                      <div className="mb-2">
-                        <p className="text-sm text-muted-foreground mb-1">Produtos:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {venda.produtos.map((prod, idx) => (
-                            <Badge key={idx} variant="outline">{prod}</Badge>
-                          ))}
-                        </div>
+
+                    {/* Tabela de Vendas */}
+                    <div className="order-1 lg:order-2 overflow-hidden">
+                      <h4 className="text-sm font-semibold mb-4">Detalhes das Vendas</h4>
+                      <div className="border rounded-xl overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Período</TableHead>
+                              <TableHead>Produtos</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead className="w-[100px]">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {vendas.map((venda) => (
+                              <TableRow key={venda.id}>
+                                <TableCell className="font-medium">{venda.periodo}</TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {venda.produtos.length > 0 ? (
+                                      venda.produtos.map((prod, idx) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {prod}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">
+                                  R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleEditVenda(venda)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => setDeletingVendaId(venda.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
-                    )}
-                    {venda.observacoes && (
-                      <p className="text-sm text-muted-foreground">{venda.observacoes}</p>
-                    )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Dialogs */}
+      <VendaDialog
+        open={vendaDialogOpen}
+        onOpenChange={setVendaDialogOpen}
+        onSave={handleSaveVenda}
+        venda={editingVenda}
+        idAluna={Number(id)}
+      />
+
+      <AlertDialog open={!!deletingVendaId} onOpenChange={() => setDeletingVendaId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteVenda} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
