@@ -11,13 +11,12 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowLeft, Edit, Plus, Trash2, Share2, Download } from "lucide-react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from "recharts";
 import { VendaDialog } from "@/components/VendaDialog";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
-import { CompartilharDialog } from "@/components/CompartilharDialog";
-import { ExportarDialog } from "@/components/ExportarDialog";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -34,8 +33,6 @@ export default function AlunaDetalhes() {
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false);
   const [editingVenda, setEditingVenda] = useState<Venda | null>(null);
   const [deletingVendaId, setDeletingVendaId] = useState<number | null>(null);
-  const [compartilharDialogOpen, setCompartilharDialogOpen] = useState(false);
-  const [exportarDialogOpen, setExportarDialogOpen] = useState(false);
 
   if (isLoading) {
     return <div className="p-8">Carregando...</div>;
@@ -124,14 +121,28 @@ export default function AlunaDetalhes() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setCompartilharDialogOpen(true)}>
-              <Share2 className="mr-2 h-4 w-4" />
-              Compartilhar
-            </Button>
-            <Button variant="outline" onClick={() => setExportarDialogOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportar
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Compartilhar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ative a exportação primeiro</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ative a exportação primeiro</p>
+              </TooltipContent>
+            </Tooltip>
             <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
               <Edit className="mr-2 h-4 w-4" />
               Editar
@@ -313,7 +324,7 @@ export default function AlunaDetalhes() {
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="periodo" className="text-xs" />
                             <YAxis className="text-xs" />
-                            <Tooltip 
+                            <ChartTooltip 
                               formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                             />
                             <Legend />
@@ -403,22 +414,6 @@ export default function AlunaDetalhes() {
         venda={editingVenda}
         idAluna={Number(id)}
       />
-
-      <CompartilharDialog
-        open={compartilharDialogOpen}
-        onOpenChange={setCompartilharDialogOpen}
-        idAluna={Number(id)}
-      />
-
-      {aluna && (
-        <ExportarDialog
-          open={exportarDialogOpen}
-          onOpenChange={setExportarDialogOpen}
-          aluna={aluna}
-          vendas={vendas}
-          observacoes={observacoes}
-        />
-      )}
 
       <AlertDialog open={!!deletingVendaId} onOpenChange={() => setDeletingVendaId(null)}>
         <AlertDialogContent>
