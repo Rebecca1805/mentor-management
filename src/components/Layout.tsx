@@ -10,12 +10,14 @@ import {
   BarChart3,
   LogOut,
   Sparkles,
+  Download,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Painel Alunas", href: "/painel-alunas", icon: UserPlus },
   { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
+  { name: "Backup", href: "/backup", icon: Download },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {

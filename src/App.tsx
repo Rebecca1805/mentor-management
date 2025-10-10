@@ -13,6 +13,7 @@ import AlunaDetalhes from "./pages/AlunaDetalhes";
 import FichaAlunaVisualizar from "./pages/FichaAlunaVisualizar";
 import PainelAlunas from "./pages/PainelAlunas";
 import Relatorios from "./pages/Relatorios";
+import BackupRestauracao from "./pages/BackupRestauracao";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/painel-alunas" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/painel-alunas/:id" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Layout><Relatorios /></Layout></ProtectedRoute>} />
+            <Route path="/backup" element={<ProtectedRoute><Layout><BackupRestauracao /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Plus, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash2, FileText, Info, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { VendaDialog } from "@/components/VendaDialog";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
+import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -32,7 +34,13 @@ export default function AlunaDetalhes() {
   const [deletingVendaId, setDeletingVendaId] = useState<number | null>(null);
 
   if (isLoading) {
-    return <div className="p-8">Carregando...</div>;
+    return (
+      <TooltipProvider>
+        <div className="p-8">
+          <AlunaDetalhesSkeleton />
+        </div>
+      </TooltipProvider>
+    );
   }
 
   if (!aluna) {
@@ -86,12 +94,14 @@ export default function AlunaDetalhes() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8 max-w-6xl mx-auto"
-    >
-      <Button
+    <TooltipProvider>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="p-8 max-w-6xl mx-auto"
+      >
+        <Button
         variant="ghost"
         onClick={() => navigate("/dashboard")}
         className="mb-6"
@@ -113,7 +123,16 @@ export default function AlunaDetalhes() {
                 <Badge variant={aluna.status === "Ativa" ? "default" : "secondary"}>
                   {aluna.status}
                 </Badge>
-                <Badge variant="outline">{aluna.tempo_base} dias na base</Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="cursor-help">
+                      {aluna.tempo_base} dias na base
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs font-light">Tempo desde o cadastro</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -287,8 +306,14 @@ export default function AlunaDetalhes() {
               </div>
 
               {vendas.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma venda registrada ainda.
+                <div className="empty-state py-8">
+                  <ShoppingCart className="empty-state-icon" />
+                  <p className="empty-state-title">Nenhuma venda registrada</p>
+                  <p className="empty-state-description">Comece a registrar vendas para acompanhar o faturamento</p>
+                  <Button onClick={() => { setEditingVenda(null); setVendaDialogOpen(true); }} className="mt-4 btn-gradient">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Venda
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -300,13 +325,29 @@ export default function AlunaDetalhes() {
                       <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={vendasPorPeriodo}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                            <XAxis dataKey="periodo" className="text-xs" />
-                            <YAxis className="text-xs" />
-                            <Tooltip 
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                            <XAxis 
+                              dataKey="periodo" 
+                              stroke="hsl(var(--muted-foreground))"
+                              style={{ fontSize: '12px', fontWeight: 300 }}
+                            />
+                            <YAxis 
+                              stroke="hsl(var(--muted-foreground))"
+                              style={{ fontSize: '12px', fontWeight: 300 }}
+                            />
+                            <RechartsTooltip 
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: 300,
+                              }}
                               formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                             />
-                            <Legend />
+                            <Legend 
+                              wrapperStyle={{ fontSize: '12px', fontWeight: 300 }}
+                            />
                             <Line 
                               type="monotone" 
                               dataKey="valor" 
@@ -410,6 +451,7 @@ export default function AlunaDetalhes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </TooltipProvider>
   );
 }
