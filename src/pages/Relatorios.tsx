@@ -98,10 +98,17 @@ export default function Relatorios() {
       className="p-8"
     >
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Indicadores e Relatórios</h1>
+        <div className="space-y-2">
+          <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins font-extralight">
+            Indicadores e Relatórios
+          </h1>
+          <p className="text-muted-foreground font-light">
+            Análise completa de desempenho e vendas
+          </p>
+        </div>
         <div className="flex gap-4">
           <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -110,7 +117,7 @@ export default function Relatorios() {
               <SelectItem value="Inativa">Apenas Inativas</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={exportarCSV}>
+          <Button onClick={exportarCSV} className="btn-gradient">
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
@@ -119,134 +126,200 @@ export default function Relatorios() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-primary text-white border-0 shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium opacity-90">Total de Alunas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{totalAlunas}</p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.2 }}>
+          <Card className="card-premium border-primary/30 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-sm font-light text-muted-foreground">Total de Alunas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-poppins font-semibold text-primary">{totalAlunas}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">% Ativas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{percentualAtivas.toFixed(1)}%</p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="text-sm font-light text-muted-foreground">% Ativas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-poppins font-semibold text-success">{percentualAtivas.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground font-light mt-1">{alunas_ativas} de {totalAlunas}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tempo Base Médio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{Math.round(tempoBaseMedio)}</p>
-            <p className="text-sm text-muted-foreground">dias</p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="text-sm font-light text-muted-foreground">Tempo Base Médio</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-poppins font-semibold">{Math.round(tempoBaseMedio)}</p>
+              <p className="text-sm text-muted-foreground font-light">dias</p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Faturamento/Aluna</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">
-              R$ {faturamentoPorAluna.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="text-sm font-light text-muted-foreground">Faturamento/Aluna</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-poppins font-semibold text-secondary">
+                R$ {faturamentoPorAluna.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Distribuição por Status */}
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle>Distribuição por Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="font-poppins font-light text-lg">Distribuição por Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 300,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Receita Total */}
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle>Receita Total</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center h-[300px]">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-primary">
-                R$ {receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-muted-foreground mt-2">Período Total</p>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="font-poppins font-light text-lg">Receita Total</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center h-[300px]">
+              <div className="text-center">
+                <p className="text-6xl font-poppins font-semibold text-primary">
+                  R$ {receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-muted-foreground font-light mt-2">Período Total</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Evolução de Vendas */}
-      <Card className="shadow-elegant mb-6">
-        <CardHeader>
-          <CardTitle>Evolução de Vendas por Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={vendasPorPeriodo}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="periodo" className="text-xs" />
-              <YAxis className="text-xs" />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="valor"
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                name="Valor Vendido (R$)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Vendas por Produto */}
-      {vendasPorProduto.length > 0 && (
-        <Card className="shadow-elegant">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.2 }}>
+        <Card className="card-premium mb-6">
           <CardHeader>
-            <CardTitle>Top 5 Produtos por Valor</CardTitle>
+            <CardTitle className="font-poppins font-light text-lg">Evolução de Vendas por Período</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={vendasPorProduto} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis type="number" className="text-xs" />
-                <YAxis dataKey="produto" type="category" width={150} className="text-xs" />
-                <Tooltip />
-                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
-              </BarChart>
+              <LineChart data={vendasPorPeriodo}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis 
+                  dataKey="periodo" 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px', fontWeight: 300 }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px', fontWeight: 300 }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 300,
+                  }}
+                  formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
+                <Line
+                  type="monotone"
+                  dataKey="valor"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  name="Valor Vendido"
+                  dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Vendas por Produto */}
+      {vendasPorProduto.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.2 }}>
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="font-poppins font-light text-lg">Top 5 Produtos por Valor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={vendasPorProduto} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    type="number" 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px', fontWeight: 300 }}
+                  />
+                  <YAxis 
+                    dataKey="produto" 
+                    type="category" 
+                    width={150} 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px', fontWeight: 300 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 300,
+                    }}
+                    formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  />
+                  <Bar 
+                    dataKey="valor" 
+                    fill="hsl(var(--primary))" 
+                    radius={[0, 8, 8, 0]} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </motion.div>
   );

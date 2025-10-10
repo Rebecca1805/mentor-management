@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Venda } from "./useAlunas";
+import { showSuccessToast, showErrorToast } from "@/lib/toastHelpers";
 
 export const useCreateVenda = () => {
   const queryClient = useQueryClient();
@@ -22,10 +22,13 @@ export const useCreateVenda = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendas"] });
-      toast.success("Venda registrada com sucesso!");
+      showSuccessToast("Venda registrada com sucesso!");
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Erro ao registrar venda");
+    onError: (error: any, variables, context) => {
+      showErrorToast(
+        error.message || "Erro ao registrar venda",
+        () => context
+      );
     },
   });
 };
@@ -47,10 +50,10 @@ export const useUpdateVenda = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendas"] });
-      toast.success("Venda atualizada com sucesso!");
+      showSuccessToast("Venda atualizada com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao atualizar venda");
+      showErrorToast(error.message || "Erro ao atualizar venda");
     },
   });
 };
@@ -65,10 +68,10 @@ export const useDeleteVenda = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendas"] });
-      toast.success("Venda removida com sucesso!");
+      showSuccessToast("Venda removida com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao remover venda");
+      showErrorToast(error.message || "Erro ao remover venda");
     },
   });
 };

@@ -12,10 +12,11 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw } from "lucide-react";
+import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw, Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
+import { AlunaCardSkeleton } from "@/components/LoadingSkeletons";
 
 const CURSOS_DISPONIVEIS = [
   "Curso de Marketing Digital",
@@ -506,7 +507,30 @@ export default function PainelAlunas() {
           </Card>
 
           {/* Results */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            <AlunaCardSkeleton count={6} />
+          ) : filteredAlunas.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="empty-state"
+            >
+              <Search className="empty-state-icon" />
+              <h3 className="empty-state-title">Nenhuma aluna encontrada</h3>
+              <p className="empty-state-description">
+                Tente ajustar os filtros ou cadastre uma nova aluna
+              </p>
+              <Button 
+                onClick={() => setSearchParams({ tab: "cadastrar" })} 
+                className="mt-4 btn-gradient"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Cadastrar Aluna
+              </Button>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAlunas.map((aluna) => {
               const cursosConcluidosCount = getCursosConcluidos(aluna);
               const progressoPercentual = aluna.cursos_adquiridos.length > 0
@@ -519,7 +543,7 @@ export default function PainelAlunas() {
                     <div className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-poppins mb-1" style={{ fontWeight: 700 }}>{aluna.nome}</h3>
+                      <h3 className="text-lg font-poppins font-light mb-1 tracking-tight">{aluna.nome}</h3>
                           <p className="text-sm text-muted-foreground font-light">{aluna.email}</p>
                         </div>
                         <Badge
@@ -535,9 +559,9 @@ export default function PainelAlunas() {
 
                       {aluna.curso_atual && (
                         <div className="flex items-center gap-2 text-sm">
-                          <BookOpen className="h-4 w-4 text-primary" />
-                          <span className="text-muted-foreground font-light">
-                            Curso: <span className="text-foreground">{aluna.curso_atual}</span>
+                          <BookOpen className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-muted-foreground font-light truncate">
+                            {aluna.curso_atual}
                           </span>
                         </div>
                       )}
@@ -545,18 +569,20 @@ export default function PainelAlunas() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground font-light">Progresso</span>
-                          <span className="text-primary font-poppins" style={{ fontWeight: 700 }}>{Math.round(progressoPercentual)}%</span>
+                          <span className="text-primary font-poppins font-semibold">{Math.round(progressoPercentual)}%</span>
                         </div>
                         <Progress value={progressoPercentual} className="h-2" />
                         <p className="text-xs text-muted-foreground font-light">
-                          {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} cursos concluídos
+                          {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} concluídos
                         </p>
                       </div>
 
                       {aluna.data_cadastro && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-light">
-                          <Calendar className="h-4 w-4" />
-                          <span>Cliente há {aluna.tempo_base} dias</span>
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span title="Tempo desde o cadastro">
+                            {aluna.tempo_base} dias na base
+                          </span>
                         </div>
                       )}
                     </div>
@@ -564,14 +590,17 @@ export default function PainelAlunas() {
                   <CardFooter className="pt-0 flex gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 rounded-xl font-light"
                       onClick={() => handleEdit(aluna.id)}
+                      aria-label={`Editar ${aluna.nome}`}
                     >
+                      <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
                     <Button
-                      className="flex-1"
+                      className="flex-1 btn-gradient"
                       onClick={() => navigate(`/aluna/${aluna.id}`)}
+                      aria-label={`Ver detalhes de ${aluna.nome}`}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       Detalhes
@@ -581,13 +610,6 @@ export default function PainelAlunas() {
               );
             })}
           </div>
-
-          {filteredAlunas.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground font-light">
-                Nenhuma aluna encontrada com os filtros selecionados.
-              </p>
-            </div>
           )}
         </TabsContent>
       </Tabs>

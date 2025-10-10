@@ -396,20 +396,24 @@ export default function AlunaDetalhes() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => handleEditVenda(venda)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => setDeletingVendaId(venda.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleEditVenda(venda)}
+                      className="hover:scale-105 transition-transform rounded-lg"
+                      aria-label="Editar venda"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setDeletingVendaId(venda.id)}
+                      className="hover:scale-105 transition-transform rounded-lg"
+                      aria-label="Excluir venda"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -436,22 +440,25 @@ export default function AlunaDetalhes() {
       />
 
       <AlertDialog open={!!deletingVendaId} onOpenChange={() => setDeletingVendaId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-poppins font-light">Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
               Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteVenda} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteVenda}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </motion.div>
+    </motion.div>
     </TooltipProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showSuccessToast, showErrorToast } from "@/lib/toastHelpers";
 
 export interface CursoAdquirido {
   nome: string;
@@ -164,10 +164,10 @@ export const useCreateAluna = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
-      toast.success("Aluna adicionada com sucesso!");
+      showSuccessToast("Aluna adicionada com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao adicionar aluna");
+      showErrorToast(error.message || "Erro ao adicionar aluna");
     },
   });
 };
@@ -192,10 +192,10 @@ export const useUpdateAluna = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
       queryClient.invalidateQueries({ queryKey: ["aluna"] });
-      toast.success("Aluna atualizada com sucesso!");
+      showSuccessToast("Aluna atualizada com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao atualizar aluna");
+      showErrorToast(error.message || "Erro ao atualizar aluna");
     },
   });
 };
@@ -211,10 +211,10 @@ export const useDeleteAluna = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
-      toast.success("Aluna removida com sucesso!");
+      showSuccessToast("Aluna removida com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao remover aluna");
+      showErrorToast(error.message || "Erro ao remover aluna");
     },
   });
 };

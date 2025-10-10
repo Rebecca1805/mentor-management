@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showSuccessToast, showErrorToast } from "@/lib/toastHelpers";
 
 export interface ObservacaoMentora {
   id: string;
@@ -56,10 +56,10 @@ export const useCreateObservacaoMentora = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["observacoes_mentora"] });
-      toast.success("Observação adicionada com sucesso!");
+      showSuccessToast("Observação adicionada!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao adicionar observação");
+      showErrorToast(error.message || "Erro ao adicionar observação");
     },
   });
 };
@@ -81,10 +81,10 @@ export const useUpdateObservacaoMentora = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["observacoes_mentora"] });
-      toast.success("Observação atualizada com sucesso!");
+      showSuccessToast("Observação atualizada!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao atualizar observação");
+      showErrorToast(error.message || "Erro ao atualizar observação");
     },
   });
 };
@@ -103,10 +103,10 @@ export const useDeleteObservacaoMentora = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["observacoes_mentora"] });
-      toast.success("Observação removida com sucesso!");
+      showSuccessToast("Observação removida!");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao remover observação");
+      showErrorToast(error.message || "Erro ao remover observação");
     },
   });
 };
