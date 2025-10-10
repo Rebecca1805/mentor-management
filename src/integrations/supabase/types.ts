@@ -18,15 +18,16 @@ export type Database = {
         Row: {
           created_at: string | null
           curso_atual: string | null
-          cursos_adquiridos: string[] | null
-          cursos_concluidos: number | null
+          cursos_adquiridos: Json | null
+          data_cadastro: string
           data_primeira_compra: string | null
           data_ultima_compra: string | null
           email: string
           id: number
           nome: string
           observacoes_mentora: string | null
-          principais_dificuldades: string | null
+          observacoes_mentora_tabela: Json | null
+          principais_dificuldades: string[] | null
           status: string | null
           tempo_base: number | null
           updated_at: string | null
@@ -35,15 +36,16 @@ export type Database = {
         Insert: {
           created_at?: string | null
           curso_atual?: string | null
-          cursos_adquiridos?: string[] | null
-          cursos_concluidos?: number | null
+          cursos_adquiridos?: Json | null
+          data_cadastro?: string
           data_primeira_compra?: string | null
           data_ultima_compra?: string | null
           email: string
           id?: number
           nome: string
           observacoes_mentora?: string | null
-          principais_dificuldades?: string | null
+          observacoes_mentora_tabela?: Json | null
+          principais_dificuldades?: string[] | null
           status?: string | null
           tempo_base?: number | null
           updated_at?: string | null
@@ -52,15 +54,16 @@ export type Database = {
         Update: {
           created_at?: string | null
           curso_atual?: string | null
-          cursos_adquiridos?: string[] | null
-          cursos_concluidos?: number | null
+          cursos_adquiridos?: Json | null
+          data_cadastro?: string
           data_primeira_compra?: string | null
           data_ultima_compra?: string | null
           email?: string
           id?: number
           nome?: string
           observacoes_mentora?: string | null
-          principais_dificuldades?: string | null
+          observacoes_mentora_tabela?: Json | null
+          principais_dificuldades?: string[] | null
           status?: string | null
           tempo_base?: number | null
           updated_at?: string | null
@@ -170,10 +173,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_tempo_base: {
+        Args: { p_data_cadastro: string }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      curso_status: "nao_iniciado" | "em_andamento" | "pausado" | "concluido"
+      plano_status: "iniciado" | "em_andamento" | "cancelado" | "interrompido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -300,6 +307,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      curso_status: ["nao_iniciado", "em_andamento", "pausado", "concluido"],
+      plano_status: ["iniciado", "em_andamento", "cancelado", "interrompido"],
+    },
   },
 } as const
