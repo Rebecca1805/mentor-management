@@ -2,23 +2,41 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface CursoAdquirido {
+  nome: string;
+  status: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
+}
+
+export interface ObservacaoMentora {
+  plano_acao: string;
+  prazo_execucao: string;
+  status: 'iniciado' | 'em_andamento' | 'cancelado' | 'interrompido';
+  observacoes: string;
+}
+
 export interface Aluna {
   id: number;
   nome: string;
   email: string;
   curso_atual: string | null;
-  cursos_adquiridos: string[];
-  cursos_concluidos: number;
+  cursos_adquiridos: CursoAdquirido[];
+  data_cadastro: string;
   data_primeira_compra: string | null;
   data_ultima_compra: string | null;
   tempo_base: number;
   status: string;
-  principais_dificuldades: string | null;
+  principais_dificuldades: string[];
   observacoes_mentora: string | null;
+  observacoes_mentora_tabela: ObservacaoMentora[];
   user_id: string;
   created_at: string;
   updated_at: string;
 }
+
+// Helper function to calculate cursos_concluidos
+export const getCursosConcluidos = (aluna: Aluna): number => {
+  return aluna.cursos_adquiridos.filter(c => c.status === 'concluido').length;
+};
 
 export interface PlanoAcao {
   id: number;
@@ -54,15 +72,32 @@ export const useAlunas = () => {
         .order("nome");
 
       if (error) throw error;
-      return data as Aluna[];
+      return data.map((aluna: any) => ({
+        ...aluna,
+        cursos_adquiridos: (aluna.cursos_adquiridos as any[])?.map((c: any) => ({
+          nome: c.nome || '',
+          status: c.status || 'nao_iniciado'
+        })) || [],
+        principais_dificuldades: Array.isArray(aluna.principais_dificuldades)
+          ? aluna.principais_dificuldades
+          : [],
+        observacoes_mentora_tabela: (aluna.observacoes_mentora_tabela as any[])?.map((o: any) => ({
+          plano_acao: o.plano_acao || '',
+          prazo_execucao: o.prazo_execucao || '',
+          status: o.status || 'iniciado',
+          observacoes: o.observacoes || ''
+        })) || [],
+      })) as Aluna[];
     },
   });
 };
 
-export const useAluna = (id: number) => {
+export const useAluna = (id?: number) => {
   return useQuery({
     queryKey: ["aluna", id],
     queryFn: async () => {
+      if (!id) return null;
+      
       const { data, error } = await supabase
         .from("alunas")
         .select("*")
@@ -70,7 +105,22 @@ export const useAluna = (id: number) => {
         .single();
 
       if (error) throw error;
-      return data as Aluna;
+      return {
+        ...data,
+        cursos_adquiridos: (data.cursos_adquiridos as any[])?.map((c: any) => ({
+          nome: c.nome || '',
+          status: c.status || 'nao_iniciado'
+        })) || [],
+        principais_dificuldades: Array.isArray(data.principais_dificuldades)
+          ? data.principais_dificuldades
+          : [],
+        observacoes_mentora_tabela: (data.observacoes_mentora_tabela as any[])?.map((o: any) => ({
+          plano_acao: o.plano_acao || '',
+          prazo_execucao: o.prazo_execucao || '',
+          status: o.status || 'iniciado',
+          observacoes: o.observacoes || ''
+        })) || [],
+      } as Aluna;
     },
     enabled: !!id,
   });
@@ -119,9 +169,11 @@ export const useCreateAluna = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      const insertData: any = { ...aluna, user_id: user.id };
+      
       const { data, error } = await supabase
         .from("alunas")
-        .insert([{ ...aluna, user_id: user.id }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -143,9 +195,11 @@ export const useUpdateAluna = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...aluna }: Partial<Aluna> & { id: number }) => {
+      const updateData: any = { ...aluna };
+      
       const { data, error } = await supabase
         .from("alunas")
-        .update(aluna)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

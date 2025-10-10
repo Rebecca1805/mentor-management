@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useAlunas } from "@/hooks/useAlunas";
+import { useAlunas, getCursosConcluidos } from "@/hooks/useAlunas";
 import { AlunaCard } from "@/components/AlunaCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,7 +65,7 @@ export default function Dashboard() {
     const progresso = alunas.map(a => ({
       nome: a.nome.split(" ")[0],
       percentual: a.cursos_adquiridos.length > 0
-        ? (a.cursos_concluidos / a.cursos_adquiridos.length) * 100
+        ? (getCursosConcluidos(a) / a.cursos_adquiridos.length) * 100
         : 0
     }));
     return progresso.slice(0, 10);

@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Aluna } from "@/hooks/useAlunas";
+import { Aluna, getCursosConcluidos } from "@/hooks/useAlunas";
 import { BookOpen, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,8 +15,9 @@ interface AlunaCardProps {
 export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
   const navigate = useNavigate();
   
+  const cursosConcluidosCount = getCursosConcluidos(aluna);
   const progressoPercentual = aluna.cursos_adquiridos.length > 0
-    ? (aluna.cursos_concluidos / aluna.cursos_adquiridos.length) * 100
+    ? (cursosConcluidosCount / aluna.cursos_adquiridos.length) * 100
     : 0;
 
   return (
@@ -61,7 +62,7 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
               </div>
               <Progress value={progressoPercentual} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                {aluna.cursos_concluidos} de {aluna.cursos_adquiridos.length} cursos concluídos
+                {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} cursos concluídos
               </p>
             </div>
 

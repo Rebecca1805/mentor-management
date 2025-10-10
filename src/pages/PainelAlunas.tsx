@@ -1,20 +1,21 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useAluna, useCreateAluna, useUpdateAluna, useAlunas } from "@/hooks/useAlunas";
+import { useAluna, useCreateAluna, useUpdateAluna, useAlunas, CursoAdquirido, ObservacaoMentora, getCursosConcluidos } from "@/hooks/useAlunas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Search, BookOpen, Calendar, Eye, Save, X } from "lucide-react";
-import { useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { DifficultyTags } from "@/components/DifficultyTags";
+import { ObservacoesTable } from "@/components/ObservacoesTable";
 
 const CURSOS_DISPONIVEIS = [
   "Curso de Marketing Digital",
@@ -24,6 +25,13 @@ const CURSOS_DISPONIVEIS = [
   "Curso de Instagram para Negócios",
   "Curso de Produtividade",
 ];
+
+const CURSO_STATUS_LABELS = {
+  nao_iniciado: "Não Iniciado",
+  em_andamento: "Em Andamento",
+  pausado: "Pausado",
+  concluido: "Concluído",
+};
 
 export default function PainelAlunas() {
   const navigate = useNavigate();
@@ -37,7 +45,10 @@ export default function PainelAlunas() {
   const updateAluna = useUpdateAluna();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [cursoFilter, setCursoFilter] = useState<string[]>([]);
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   
   const isEdit = !!id;
 
@@ -45,14 +56,14 @@ export default function PainelAlunas() {
     nome: "",
     email: "",
     curso_atual: "",
-    cursos_adquiridos: [] as string[],
-    cursos_concluidos: 0,
+    cursos_adquiridos: [] as CursoAdquirido[],
+    status: "Ativa",
+    principais_dificuldades: [] as string[],
+    observacoes_mentora: "",
+    observacoes_mentora_tabela: [] as ObservacaoMentora[],
     data_primeira_compra: "",
     data_ultima_compra: "",
     tempo_base: 0,
-    status: "Ativa",
-    principais_dificuldades: "",
-    observacoes_mentora: "",
   });
 
   useEffect(() => {
@@ -61,17 +72,26 @@ export default function PainelAlunas() {
         nome: aluna.nome,
         email: aluna.email,
         curso_atual: aluna.curso_atual || "",
-        cursos_adquiridos: aluna.cursos_adquiridos,
-        cursos_concluidos: aluna.cursos_concluidos,
+        cursos_adquiridos: aluna.cursos_adquiridos || [],
+        status: aluna.status,
+        principais_dificuldades: aluna.principais_dificuldades || [],
+        observacoes_mentora: aluna.observacoes_mentora || "",
+        observacoes_mentora_tabela: aluna.observacoes_mentora_tabela || [],
         data_primeira_compra: aluna.data_primeira_compra || "",
         data_ultima_compra: aluna.data_ultima_compra || "",
         tempo_base: aluna.tempo_base,
-        status: aluna.status,
-        principais_dificuldades: aluna.principais_dificuldades || "",
-        observacoes_mentora: aluna.observacoes_mentora || "",
       });
     }
   }, [aluna]);
+
+  // Calculate tempo_base automatically based on data_cadastro
+  const tempoBaseCalculado = useMemo(() => {
+    if (!aluna?.data_cadastro) return formData.tempo_base;
+    const cadastro = new Date(aluna.data_cadastro);
+    const hoje = new Date();
+    const diff = Math.floor((hoje.getTime() - cadastro.getTime()) / (1000 * 60 * 60 * 24));
+    return diff;
+  }, [aluna?.data_cadastro, formData.tempo_base]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
@@ -79,11 +99,16 @@ export default function PainelAlunas() {
     return alunas.filter((aluna) => {
       const matchesSearch = aluna.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           aluna.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || aluna.status === statusFilter;
+      const matchesStatus = statusFilter.length === 0 || statusFilter.includes(aluna.status);
+      const matchesCurso = cursoFilter.length === 0 || 
+                          aluna.cursos_adquiridos.some(c => cursoFilter.includes(c.nome));
+      
+      const matchesDataInicio = !dataInicio || (aluna.data_cadastro && aluna.data_cadastro >= dataInicio);
+      const matchesDataFim = !dataFim || (aluna.data_cadastro && aluna.data_cadastro <= dataFim);
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesCurso && matchesDataInicio && matchesDataFim;
     });
-  }, [alunas, searchTerm, statusFilter]);
+  }, [alunas, searchTerm, statusFilter, cursoFilter, dataInicio, dataFim]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,11 +118,9 @@ export default function PainelAlunas() {
       return;
     }
 
-    if (formData.cursos_concluidos > formData.cursos_adquiridos.length) {
-      toast.error("Cursos concluídos não pode ser maior que cursos adquiridos");
-      return;
-    }
-
+    // Validate: cursos_concluidos não pode exceder total de cursos com status concluído
+    const cursosConcluidosCount = formData.cursos_adquiridos.filter(c => c.status === 'concluido').length;
+    
     try {
       if (isEdit) {
         await updateAluna.mutateAsync({ id: Number(id), ...formData });
@@ -108,19 +131,7 @@ export default function PainelAlunas() {
       }
       
       // Reset form
-      setFormData({
-        nome: "",
-        email: "",
-        curso_atual: "",
-        cursos_adquiridos: [],
-        cursos_concluidos: 0,
-        data_primeira_compra: "",
-        data_ultima_compra: "",
-        tempo_base: 0,
-        status: "Ativa",
-        principais_dificuldades: "",
-        observacoes_mentora: "",
-      });
+      resetForm();
       
       // Switch to buscar tab
       setSearchParams({ tab: "buscar" });
@@ -129,13 +140,44 @@ export default function PainelAlunas() {
     }
   };
 
-  const toggleCurso = (curso: string) => {
-    setFormData(prev => ({
-      ...prev,
-      cursos_adquiridos: prev.cursos_adquiridos.includes(curso)
-        ? prev.cursos_adquiridos.filter(c => c !== curso)
-        : [...prev.cursos_adquiridos, curso]
-    }));
+  const resetForm = () => {
+    setFormData({
+      nome: "",
+      email: "",
+      curso_atual: "",
+      cursos_adquiridos: [],
+      status: "Ativa",
+      principais_dificuldades: [],
+      observacoes_mentora: "",
+      observacoes_mentora_tabela: [],
+      data_primeira_compra: "",
+      data_ultima_compra: "",
+      tempo_base: 0,
+    });
+  };
+
+  const toggleCursoStatus = (cursoNome: string, status: CursoAdquirido['status']) => {
+    const cursoIndex = formData.cursos_adquiridos.findIndex(c => c.nome === cursoNome);
+    
+    if (cursoIndex >= 0) {
+      // Update existing course
+      const newCursos = [...formData.cursos_adquiridos];
+      newCursos[cursoIndex] = { ...newCursos[cursoIndex], status };
+      setFormData({ ...formData, cursos_adquiridos: newCursos });
+    } else {
+      // Add new course
+      setFormData({
+        ...formData,
+        cursos_adquiridos: [...formData.cursos_adquiridos, { nome: cursoNome, status }]
+      });
+    }
+  };
+
+  const removeCurso = (cursoNome: string) => {
+    setFormData({
+      ...formData,
+      cursos_adquiridos: formData.cursos_adquiridos.filter(c => c.nome !== cursoNome)
+    });
   };
 
   const handleEdit = (alunaId: number) => {
@@ -144,19 +186,7 @@ export default function PainelAlunas() {
 
   const handleCancelEdit = () => {
     navigate("/painel-alunas?tab=cadastrar");
-    setFormData({
-      nome: "",
-      email: "",
-      curso_atual: "",
-      cursos_adquiridos: [],
-      cursos_concluidos: 0,
-      data_primeira_compra: "",
-      data_ultima_compra: "",
-      tempo_base: 0,
-      status: "Ativa",
-      principais_dificuldades: "",
-      observacoes_mentora: "",
-    });
+    resetForm();
   };
 
   const breadcrumbItems = [
@@ -189,7 +219,7 @@ export default function PainelAlunas() {
         </TabsList>
 
         <TabsContent value="cadastrar" className="space-y-6 mt-8">
-          <Card className="card-premium max-w-4xl">
+          <Card className="card-premium max-w-5xl">
             <CardContent className="pt-8">
               {isEdit && (
                 <div className="flex items-center justify-between mb-6 pb-6 border-b">
@@ -228,7 +258,7 @@ export default function PainelAlunas() {
                         value={formData.nome}
                         onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                         required
-                        className="rounded-xl"
+                        className="rounded-xl font-light"
                       />
                     </div>
                     <div className="space-y-2">
@@ -239,25 +269,26 @@ export default function PainelAlunas() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         required
-                        className="rounded-xl"
+                        className="rounded-xl font-light"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2 md:col-span-1">
                       <Label htmlFor="status" className="font-light">Status</Label>
-                      <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Ativa">Ativa</SelectItem>
-                          <SelectItem value="Inativa">Inativa</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center space-x-3 h-10">
+                        <Switch
+                          id="status"
+                          checked={formData.status === "Ativa"}
+                          onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "Ativa" : "Inativa" })}
+                        />
+                        <Label htmlFor="status" className="font-light cursor-pointer">
+                          {formData.status}
+                        </Label>
+                      </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="curso_atual" className="font-light">Curso Atual</Label>
                       <Select value={formData.curso_atual} onValueChange={(value) => setFormData({ ...formData, curso_atual: value })}>
                         <SelectTrigger className="rounded-xl">
@@ -271,50 +302,112 @@ export default function PainelAlunas() {
                       </Select>
                     </div>
                   </div>
+
+                  {isEdit && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="font-light">Data de Cadastro</Label>
+                        <Input
+                          value={aluna?.data_cadastro || ""}
+                          disabled
+                          className="rounded-xl font-light bg-muted"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-light">Tempo na Base (dias)</Label>
+                        <Input
+                          value={tempoBaseCalculado}
+                          disabled
+                          className="rounded-xl font-light bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground font-light">Calculado automaticamente</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Cursos */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {CURSOS_DISPONIVEIS.map((curso) => (
-                      <label
-                        key={curso}
-                        className="flex items-center space-x-3 p-4 rounded-xl border cursor-pointer hover:bg-accent/50 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.cursos_adquiridos.includes(curso)}
-                          onChange={() => toggleCurso(curso)}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="font-light">{curso}</span>
-                      </label>
-                    ))}
+                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos e Evolução</h3>
+                  
+                  <div className="space-y-4">
+                    {CURSOS_DISPONIVEIS.map((curso) => {
+                      const cursoData = formData.cursos_adquiridos.find(c => c.nome === curso);
+                      const status = cursoData?.status || 'nao_iniciado';
+                      const isAdded = !!cursoData;
+
+                      return (
+                        <div
+                          key={curso}
+                          className={`p-6 rounded-2xl border-2 transition-all ${
+                            isAdded ? 'bg-muted/30 border-primary/30' : 'border-border/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-light text-lg mb-2">{curso}</h4>
+                              {isAdded && (
+                                <Select
+                                  value={status}
+                                  onValueChange={(value) => toggleCursoStatus(curso, value as CursoAdquirido['status'])}
+                                >
+                                  <SelectTrigger className="w-full rounded-xl">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
+                                    <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
+                                    <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
+                                    <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                            <div className="ml-4">
+                              {isAdded ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeCurso(curso)}
+                                  className="text-destructive"
+                                >
+                                  Remover
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleCursoStatus(curso, 'nao_iniciado')}
+                                >
+                                  Adicionar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cursos_concluidos" className="font-light">Cursos Concluídos</Label>
-                    <Input
-                      id="cursos_concluidos"
-                      type="number"
-                      min="0"
-                      max={formData.cursos_adquiridos.length}
-                      value={formData.cursos_concluidos}
-                      onChange={(e) => setFormData({ ...formData, cursos_concluidos: Number(e.target.value) })}
-                      className="rounded-xl"
-                    />
-                    <p className="text-xs text-muted-foreground font-light">
-                      Máximo: {formData.cursos_adquiridos.length} (total de cursos adquiridos)
+                  <div className="p-4 bg-muted/50 rounded-xl">
+                    <p className="text-sm font-light">
+                      <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
+                      {formData.cursos_adquiridos.length}
+                    </p>
+                    <p className="text-sm font-light mt-1">
+                      <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
+                      {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
                     </p>
                   </div>
                 </div>
 
                 {/* Datas e Tempo */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Histórico</h3>
+                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Histórico de Compras</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="data_primeira_compra" className="font-light">Primeira Compra</Label>
                       <Input
@@ -322,7 +415,7 @@ export default function PainelAlunas() {
                         type="date"
                         value={formData.data_primeira_compra}
                         onChange={(e) => setFormData({ ...formData, data_primeira_compra: e.target.value })}
-                        className="rounded-xl"
+                        className="rounded-xl font-light"
                       />
                     </div>
                     <div className="space-y-2">
@@ -332,50 +425,28 @@ export default function PainelAlunas() {
                         type="date"
                         value={formData.data_ultima_compra}
                         onChange={(e) => setFormData({ ...formData, data_ultima_compra: e.target.value })}
-                        className="rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tempo_base" className="font-light">Tempo na Base (dias)</Label>
-                      <Input
-                        id="tempo_base"
-                        type="number"
-                        min="0"
-                        value={formData.tempo_base}
-                        onChange={(e) => setFormData({ ...formData, tempo_base: Number(e.target.value) })}
-                        className="rounded-xl"
+                        className="rounded-xl font-light"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Observações */}
+                {/* Dificuldades */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Anotações</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="principais_dificuldades" className="font-light">Principais Dificuldades</Label>
-                    <Textarea
-                      id="principais_dificuldades"
-                      value={formData.principais_dificuldades}
-                      onChange={(e) => setFormData({ ...formData, principais_dificuldades: e.target.value })}
-                      rows={4}
-                      className="rounded-xl"
-                      placeholder="Descreva as principais dificuldades da aluna..."
-                    />
-                  </div>
+                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Principais Dificuldades</h3>
+                  <DifficultyTags
+                    tags={formData.principais_dificuldades}
+                    onChange={(tags) => setFormData({ ...formData, principais_dificuldades: tags })}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="observacoes_mentora" className="font-light">Observações da Mentora</Label>
-                    <Textarea
-                      id="observacoes_mentora"
-                      value={formData.observacoes_mentora}
-                      onChange={(e) => setFormData({ ...formData, observacoes_mentora: e.target.value })}
-                      rows={4}
-                      className="rounded-xl"
-                      placeholder="Adicione observações relevantes sobre a aluna..."
-                    />
-                  </div>
+                {/* Observações da Mentora - Tabela */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Planos de Ação e Observações</h3>
+                  <ObservacoesTable
+                    observacoes={formData.observacoes_mentora_tabela}
+                    onChange={(obs) => setFormData({ ...formData, observacoes_mentora_tabela: obs })}
+                  />
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t">
@@ -383,8 +454,12 @@ export default function PainelAlunas() {
                     <Save className="mr-2 h-4 w-4" />
                     {isEdit ? "Atualizar Aluna" : "Cadastrar Aluna"}
                   </Button>
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Limpar
+                  </Button>
                   <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
-                    Cancelar
+                    Voltar
                   </Button>
                 </div>
               </form>
@@ -394,33 +469,52 @@ export default function PainelAlunas() {
 
         <TabsContent value="buscar" className="space-y-6 mt-8">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 rounded-xl">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="Ativa">Ativa</SelectItem>
-                <SelectItem value="Inativa">Inativa</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Card className="card-premium">
+            <CardContent className="pt-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Filtros</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome ou email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 rounded-xl font-light"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs font-light">Período (Data Cadastro)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="date"
+                        value={dataInicio}
+                        onChange={(e) => setDataInicio(e.target.value)}
+                        className="rounded-xl font-light"
+                        placeholder="De"
+                      />
+                      <Input
+                        type="date"
+                        value={dataFim}
+                        onChange={(e) => setDataFim(e.target.value)}
+                        className="rounded-xl font-light"
+                        placeholder="Até"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Results */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAlunas.map((aluna) => {
+              const cursosConcluidosCount = getCursosConcluidos(aluna);
               const progressoPercentual = aluna.cursos_adquiridos.length > 0
-                ? (aluna.cursos_concluidos / aluna.cursos_adquiridos.length) * 100
+                ? (cursosConcluidosCount / aluna.cursos_adquiridos.length) * 100
                 : 0;
 
               return (
@@ -459,11 +553,11 @@ export default function PainelAlunas() {
                         </div>
                         <Progress value={progressoPercentual} className="h-2" />
                         <p className="text-xs text-muted-foreground font-light">
-                          {aluna.cursos_concluidos} de {aluna.cursos_adquiridos.length} cursos
+                          {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} cursos concluídos
                         </p>
                       </div>
 
-                      {aluna.data_primeira_compra && (
+                      {aluna.data_cadastro && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-light">
                           <Calendar className="h-4 w-4" />
                           <span>Cliente há {aluna.tempo_base} dias</span>
