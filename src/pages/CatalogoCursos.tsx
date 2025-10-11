@@ -125,8 +125,7 @@ export default function CatalogoCursos() {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto py-6 px-4 max-w-7xl">
+    <div className="container mx-auto py-6 px-4 max-w-7xl">
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "/" },
@@ -462,6 +461,5 @@ export default function CatalogoCursos() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </Layout>
   );
 }

@@ -142,10 +142,6 @@ export default function AlunaDetalhes() {
               <FileText className="mr-2 h-4 w-4" />
               Ver Ficha
             </Button>
-            <Button onClick={() => navigate(`/aluna/editar/${id}`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
           </div>
         </div>
 

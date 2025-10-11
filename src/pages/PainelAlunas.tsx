@@ -463,7 +463,7 @@ export default function PainelAlunas() {
                 <div className="flex gap-4 pt-6 border-t">
                   <Button type="submit" className="btn-gradient" disabled={createAluna.isPending || updateAluna.isPending}>
                     <Save className="mr-2 h-4 w-4" />
-                    {isEdit ? "Atualizar Aluna" : "Cadastrar Aluna"}
+                    {isEdit ? "Atualizar Aluno" : "Cadastrar Aluno"}
                   </Button>
                   <Button type="button" variant="outline" onClick={resetForm}>
                     <RotateCcw className="mr-2 h-4 w-4" />

@@ -63,14 +63,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <Link key={item.name} to={item.href}>
                     <Button
                       variant={isActive ? "default" : "ghost"}
+                      size="sm"
                       className={`rounded-xl ${
                         isActive
                           ? "bg-gradient-to-r from-primary to-secondary text-white"
                           : ""
                       }`}
                     >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {item.name}
+                      <item.icon className="h-4 w-4 lg:mr-2" />
+                      <span className="hidden lg:inline">{item.name}</span>
                     </Button>
                   </Link>
                 );
