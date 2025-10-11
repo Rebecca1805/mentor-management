@@ -6,6 +6,7 @@ import { Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState } from "react";
+import { calcularTempoBase } from "@/lib/utils";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))"];
 
@@ -23,7 +24,7 @@ export default function Relatorios() {
   const alunas_ativas = alunasFiltradas.filter(a => a.status === "Ativa").length;
   const percentualAtivas = totalAlunas > 0 ? (alunas_ativas / totalAlunas) * 100 : 0;
   const tempoBaseMedio = totalAlunas > 0
-    ? alunasFiltradas.reduce((sum, a) => sum + a.tempo_base, 0) / totalAlunas
+    ? alunasFiltradas.reduce((sum, a) => sum + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao), 0) / totalAlunas
     : 0;
 
   // Vendas
@@ -77,7 +78,7 @@ export default function Relatorios() {
         aluna.email,
         aluna.status,
         getCursosConcluidos(aluna),
-        aluna.tempo_base,
+        calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao),
         receitaAluna.toFixed(2)
       ];
     });

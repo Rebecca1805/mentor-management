@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Aluna, getCursosConcluidos } from "@/hooks/useAlunas";
 import { BookOpen, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { calcularTempoBase } from "@/lib/utils";
 
 interface AlunaCardProps {
   aluna: Aluna;
@@ -66,11 +67,11 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
             </p>
           </div>
 
-          {aluna.tempo_base > 0 && (
+          {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao) > 0 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-light" title="Tempo desde o cadastro">
-                {aluna.tempo_base} dias na base
+              <span className="font-light" title="Tempo desde a primeira compra">
+                {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
               </span>
             </div>
           )}

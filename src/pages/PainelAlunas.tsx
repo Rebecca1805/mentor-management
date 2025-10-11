@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaCardSkeleton } from "@/components/LoadingSkeletons";
+import { calcularTempoBase } from "@/lib/utils";
 
 
 const CURSO_STATUS_LABELS = {
@@ -81,14 +82,18 @@ export default function PainelAlunas() {
     }
   }, [aluna]);
 
-  // Calculate tempo_base automatically based on data_cadastro
+  // Calculate tempo_base automatically based on data_primeira_compra and status
   const tempoBaseCalculado = useMemo(() => {
-    if (!aluna?.data_cadastro) return formData.tempo_base;
-    const cadastro = new Date(aluna.data_cadastro);
-    const hoje = new Date();
-    const diff = Math.floor((hoje.getTime() - cadastro.getTime()) / (1000 * 60 * 60 * 24));
-    return diff;
-  }, [aluna?.data_cadastro, formData.tempo_base]);
+    if (!aluna?.data_primeira_compra) return 0;
+    
+    const primeiraCompra = new Date(aluna.data_primeira_compra);
+    const dataFinal = formData.status === "Inativa" && aluna.data_inativacao
+      ? new Date(aluna.data_inativacao)
+      : new Date();
+    
+    const diff = Math.floor((dataFinal.getTime() - primeiraCompra.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, diff);
+  }, [aluna?.data_primeira_compra, aluna?.data_inativacao, formData.status]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
@@ -120,11 +125,19 @@ export default function PainelAlunas() {
     
     try {
       if (isEdit) {
-        await updateAluna.mutateAsync({ id: Number(id), ...formData });
-        toast.success("Aluna atualizada com sucesso!");
+        await updateAluna.mutateAsync({ 
+          id: Number(id), 
+          previousStatus: aluna?.status,
+          ...formData,
+          tempo_base: tempoBaseCalculado
+        });
+        toast.success("Aluno atualizado com sucesso!");
       } else {
-        await createAluna.mutateAsync(formData);
-        toast.success("Aluna cadastrada com sucesso!");
+        await createAluna.mutateAsync({
+          ...formData,
+          tempo_base: tempoBaseCalculado
+        });
+        toast.success("Aluno cadastrado com sucesso!");
       }
       
       // Reset form
@@ -133,7 +146,7 @@ export default function PainelAlunas() {
       // Switch to buscar tab
       setSearchParams({ tab: "buscar" });
     } catch (error) {
-      toast.error("Erro ao salvar aluna");
+      toast.error("Erro ao salvar aluno");
     }
   };
 
@@ -581,8 +594,8 @@ export default function PainelAlunas() {
                       {aluna.data_cadastro && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-light">
                           <Calendar className="h-3.5 w-3.5" />
-                          <span title="Tempo desde o cadastro">
-                            {aluna.tempo_base} dias na base
+                          <span title="Tempo desde a primeira compra">
+                            {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
                           </span>
                         </div>
                       )}

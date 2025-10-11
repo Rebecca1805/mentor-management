@@ -17,6 +17,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { VendaDialog } from "@/components/VendaDialog";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
+import { calcularTempoBase } from "@/lib/utils";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -126,11 +127,11 @@ export default function AlunaDetalhes() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="cursor-help">
-                      {aluna.tempo_base} dias na base
+                      {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs font-light">Tempo desde o cadastro</p>
+                    <p className="text-xs font-light">Tempo desde a primeira compra</p>
                   </TooltipContent>
                 </Tooltip>
               </div>

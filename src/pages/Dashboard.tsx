@@ -12,6 +12,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cart
 import { Badge } from "@/components/ui/badge";
 import { isWithinInterval, parseISO } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { calcularTempoBase } from "@/lib/utils";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
@@ -129,7 +130,7 @@ export default function Dashboard() {
       .reduce((acc, v) => acc + v.valor_vendido, 0);
 
     const tempoMedio = filteredAlunas.length > 0
-      ? filteredAlunas.reduce((acc, a) => acc + a.tempo_base, 0) / filteredAlunas.length
+      ? filteredAlunas.reduce((acc, a) => acc + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao), 0) / filteredAlunas.length
       : 0;
 
     const percentualAtivas = filteredAlunas.length > 0

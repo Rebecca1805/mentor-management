@@ -20,6 +20,7 @@ export type Database = {
           curso_atual: string | null
           cursos_adquiridos: Json | null
           data_cadastro: string
+          data_inativacao: string | null
           data_primeira_compra: string | null
           data_ultima_compra: string | null
           email: string
@@ -38,6 +39,7 @@ export type Database = {
           curso_atual?: string | null
           cursos_adquiridos?: Json | null
           data_cadastro?: string
+          data_inativacao?: string | null
           data_primeira_compra?: string | null
           data_ultima_compra?: string | null
           email: string
@@ -56,6 +58,7 @@ export type Database = {
           curso_atual?: string | null
           cursos_adquiridos?: Json | null
           data_cadastro?: string
+          data_inativacao?: string | null
           data_primeira_compra?: string | null
           data_ultima_compra?: string | null
           email?: string

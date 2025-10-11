@@ -24,6 +24,7 @@ export const VendaDialog = ({ open, onOpenChange, onSave, venda, idAluna }: Vend
     observacoes: "",
   });
   const [novoProduto, setNovoProduto] = useState("");
+  const [periodoError, setPeriodoError] = useState("");
 
   useEffect(() => {
     if (venda) {
@@ -41,6 +42,7 @@ export const VendaDialog = ({ open, onOpenChange, onSave, venda, idAluna }: Vend
         observacoes: "",
       });
     }
+    setPeriodoError("");
   }, [venda, open]);
 
   const handleAddProduto = () => {
@@ -54,10 +56,33 @@ export const VendaDialog = ({ open, onOpenChange, onSave, venda, idAluna }: Vend
     setFormData({ ...formData, produtos: formData.produtos.filter((_, i) => i !== index) });
   };
 
+  const validatePeriodo = (value: string): boolean => {
+    // Validar formato MM/AA
+    const periodoRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+    return periodoRegex.test(value);
+  };
+
+  const handlePeriodoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, periodo: value });
+    
+    if (value && !validatePeriodo(value)) {
+      setPeriodoError("Campo Período deve estar no formato MM/AA.");
+    } else {
+      setPeriodoError("");
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.periodo.trim()) {
+      setPeriodoError("Período é obrigatório.");
+      return;
+    }
+    
+    if (!validatePeriodo(formData.periodo)) {
+      setPeriodoError("Campo Período deve estar no formato MM/AA.");
       return;
     }
     
@@ -88,13 +113,17 @@ export const VendaDialog = ({ open, onOpenChange, onSave, venda, idAluna }: Vend
             <Label htmlFor="periodo" className="font-light">Período *</Label>
             <Input
               id="periodo"
-              placeholder="Ex: 2024-01 ou Janeiro/2024"
+              placeholder="MM/AA (Ex: 01/24)"
               value={formData.periodo}
-              onChange={(e) => setFormData({ ...formData, periodo: e.target.value })}
+              onChange={handlePeriodoChange}
               required
-              className="rounded-xl font-light"
-              aria-label="Período da venda"
+              className={`rounded-xl font-light ${periodoError ? 'border-destructive' : ''}`}
+              aria-label="Período da venda no formato MM/AA"
+              maxLength={5}
             />
+            {periodoError && (
+              <p className="text-sm text-destructive font-light">{periodoError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -176,6 +205,7 @@ export const VendaDialog = ({ open, onOpenChange, onSave, venda, idAluna }: Vend
             <Button 
               type="submit"
               className="btn-gradient"
+              disabled={!!periodoError || !formData.periodo || !formData.valor_vendido}
             >
               {venda ? "Atualizar" : "Adicionar"}
             </Button>

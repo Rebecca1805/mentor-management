@@ -18,6 +18,7 @@ export interface Aluna {
   data_cadastro: string;
   data_primeira_compra: string | null;
   data_ultima_compra: string | null;
+  data_inativacao: string | null;
   tempo_base: number;
   status: string;
   principais_dificuldades: string[];
@@ -164,10 +165,10 @@ export const useCreateAluna = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
-      showSuccessToast("Aluna adicionada com sucesso!");
+      showSuccessToast("Aluno adicionado com sucesso!");
     },
     onError: (error: any) => {
-      showErrorToast(error.message || "Erro ao adicionar aluna");
+      showErrorToast(error.message || "Erro ao adicionar aluno");
     },
   });
 };
@@ -176,8 +177,14 @@ export const useUpdateAluna = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...aluna }: Partial<Aluna> & { id: number }) => {
+    mutationFn: async ({ id, previousStatus, ...aluna }: Partial<Aluna> & { id: number; previousStatus?: string }) => {
       const updateData: any = { ...aluna };
+      
+      // Se mudou para Inativo e não tinha data_inativacao, salvar agora
+      if (aluna.status === "Inativa" && previousStatus === "Ativa") {
+        updateData.data_inativacao = new Date().toISOString();
+      }
+      // Se voltou para Ativa, não apagar data_inativacao (mantém histórico)
       
       const { data, error } = await supabase
         .from("alunas")
@@ -192,10 +199,10 @@ export const useUpdateAluna = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
       queryClient.invalidateQueries({ queryKey: ["aluna"] });
-      showSuccessToast("Aluna atualizada com sucesso!");
+      showSuccessToast("Aluno atualizado com sucesso!");
     },
     onError: (error: any) => {
-      showErrorToast(error.message || "Erro ao atualizar aluna");
+      showErrorToast(error.message || "Erro ao atualizar aluno");
     },
   });
 };
@@ -211,10 +218,10 @@ export const useDeleteAluna = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["alunas"] });
-      showSuccessToast("Aluna removida com sucesso!");
+      showSuccessToast("Aluno removido com sucesso!");
     },
     onError: (error: any) => {
-      showErrorToast(error.message || "Erro ao remover aluna");
+      showErrorToast(error.message || "Erro ao remover aluno");
     },
   });
 };

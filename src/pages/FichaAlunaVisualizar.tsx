@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
+import { calcularTempoBase } from "@/lib/utils";
 
 export default function FichaAlunaVisualizar() {
   const { id } = useParams();
@@ -158,7 +159,7 @@ export default function FichaAlunaVisualizar() {
           </div>
           <div>
             <span className="text-muted-foreground">Tempo na Base:</span>
-            <span className="ml-2 font-semibold">{aluna.tempo_base} dias</span>
+            <span className="ml-2 font-semibold">{calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias</span>
           </div>
           <div>
             <span className="text-muted-foreground">Curso Atual:</span>
@@ -210,9 +211,9 @@ export default function FichaAlunaVisualizar() {
         )}
       </div>
 
-      {/* Observações da Mentora */}
+      {/* Plano da Mentora */}
       <div className="bg-card rounded-lg p-6 shadow-sm mb-6 border">
-        <h2 className="text-lg font-semibold mb-4">Observações da Mentora</h2>
+        <h2 className="text-lg font-semibold mb-4">Plano da Mentora</h2>
         {observacoes.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
