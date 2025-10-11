@@ -7,6 +7,7 @@ export const signUp = async (email: string, password: string, fullName: string) 
     options: {
       data: {
         full_name: fullName,
+        role: 'mentora', // Define role como mentora no cadastro
       },
     },
   });
