@@ -14,6 +14,7 @@ import FichaAlunaVisualizar from "./pages/FichaAlunaVisualizar";
 import PainelAlunas from "./pages/PainelAlunas";
 import Relatorios from "./pages/Relatorios";
 import BackupRestauracao from "./pages/BackupRestauracao";
+import CatalogoCursos from "./pages/CatalogoCursos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/painel-alunas/:id" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Layout><Relatorios /></Layout></ProtectedRoute>} />
             <Route path="/backup" element={<ProtectedRoute><Layout><BackupRestauracao /></Layout></ProtectedRoute>} />
+            <Route path="/catalogo-cursos" element={<ProtectedRoute><Layout><CatalogoCursos /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

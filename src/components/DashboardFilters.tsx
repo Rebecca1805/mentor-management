@@ -173,7 +173,7 @@ export function DashboardFilters({
               selectedAlunas.length > 0 && "border-primary/50 bg-primary/5"
             )}
           >
-            Alunas
+            Alunos
             {selectedAlunas.length > 0 && (
               <Badge variant="secondary" className="ml-2 h-5 px-2 text-xs font-light">
                 {selectedAlunas.length}
@@ -183,7 +183,7 @@ export function DashboardFilters({
         </PopoverTrigger>
         <PopoverContent className="w-64 p-3 max-h-80 overflow-y-auto" align="start">
           <div className="space-y-3">
-            <h4 className="text-sm font-medium">Alunas</h4>
+            <h4 className="text-sm font-medium">Alunos</h4>
             {availableAlunas.map((aluna) => (
               <div key={aluna.id} className="flex items-center space-x-2">
                 <Checkbox

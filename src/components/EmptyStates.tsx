@@ -41,8 +41,8 @@ export function NoAlunasFound() {
   return (
     <EmptyState
       icon={Search}
-      title="Nenhuma aluna encontrada"
-      description="Tente ajustar os filtros ou adicione uma nova aluna ao sistema"
+      title="Nenhum aluno encontrado"
+      description="Tente ajustar os filtros ou adicione um novo aluno ao sistema"
     />
   );
 }
@@ -63,7 +63,7 @@ export function NoObservacoes({ onAdd }: { onAdd?: () => void }) {
     <EmptyState
       icon={FileText}
       title="Nenhuma observação registrada"
-      description="Adicione observações para acompanhar o desenvolvimento da aluna"
+      description="Adicione observações para acompanhar o desenvolvimento do aluno"
       action={onAdd ? { label: "Nova Observação", onClick: onAdd } : undefined}
     />
   );
@@ -84,9 +84,9 @@ export function NoAlunas({ onAdd }: { onAdd?: () => void }) {
   return (
     <EmptyState
       icon={Users}
-      title="Nenhuma aluna cadastrada"
-      description="Adicione sua primeira aluna para começar a gerenciar mentorias"
-      action={onAdd ? { label: "Cadastrar Aluna", onClick: onAdd } : undefined}
+      title="Nenhum aluno cadastrado"
+      description="Adicione seu primeiro aluno para começar a gerenciar mentorias"
+      action={onAdd ? { label: "Cadastrar Aluno", onClick: onAdd } : undefined}
     />
   );
 }

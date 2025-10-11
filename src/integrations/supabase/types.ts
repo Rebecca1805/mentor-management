@@ -71,6 +71,129 @@ export type Database = {
         }
         Relationships: []
       }
+      aluno_cursos: {
+        Row: {
+          created_at: string | null
+          id: number
+          id_aluna: number
+          id_curso: number
+          id_versao: number | null
+          status_evolucao: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          id_aluna: number
+          id_curso: number
+          id_versao?: number | null
+          status_evolucao?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          id_aluna?: number
+          id_curso?: number
+          id_versao?: number | null
+          status_evolucao?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aluno_cursos_id_aluna_fkey"
+            columns: ["id_aluna"]
+            isOneToOne: false
+            referencedRelation: "alunas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_cursos_id_curso_fkey"
+            columns: ["id_curso"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_cursos_id_versao_fkey"
+            columns: ["id_versao"]
+            isOneToOne: false
+            referencedRelation: "curso_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curso_versoes: {
+        Row: {
+          created_at: string | null
+          data_fim_vigencia: string | null
+          data_inicio_vigencia: string
+          id: number
+          id_curso: number
+          updated_at: string | null
+          user_id: string
+          versao: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim_vigencia?: string | null
+          data_inicio_vigencia: string
+          id?: number
+          id_curso: number
+          updated_at?: string | null
+          user_id: string
+          versao: string
+        }
+        Update: {
+          created_at?: string | null
+          data_fim_vigencia?: string | null
+          data_inicio_vigencia?: string
+          id?: number
+          id_curso?: number
+          updated_at?: string | null
+          user_id?: string
+          versao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curso_versoes_id_curso_fkey"
+            columns: ["id_curso"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cursos: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: number
+          nome: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          nome: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fichas_compartilhadas: {
         Row: {
           created_at: string | null

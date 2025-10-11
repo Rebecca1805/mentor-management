@@ -149,8 +149,8 @@ export default function Dashboard() {
     const ativas = filteredAlunas.filter(a => a.status === "Ativa").length;
     const inativas = filteredAlunas.length - ativas;
     return [
-      { name: "Ativas", value: ativas },
-      { name: "Inativas", value: inativas },
+      { name: "Ativos", value: ativas },
+      { name: "Inativos", value: inativas },
     ];
   }, [filteredAlunas]);
 
@@ -331,20 +331,20 @@ export default function Dashboard() {
                     <TooltipTrigger asChild>
                       <button
                         className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-                        aria-label="Informações sobre faturamento de alunas ativas"
+                        aria-label="Informações sobre faturamento de alunos ativos"
                       >
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs font-light">Faturamento total de alunas ativas no período selecionado</p>
+                      <p className="text-xs font-light">Faturamento total de alunos ativos no período selecionado</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <DollarSign className="h-5 w-5 text-primary" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunas ativas: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunos ativos: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
                   R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <Badge variant="secondary" className="mt-2 font-light text-xs">
@@ -376,7 +376,7 @@ export default function Dashboard() {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs font-light">Inclui ativas e inativas no período selecionado</p>
+                      <p className="text-xs font-light">Inclui ativos e inativos no período selecionado</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -387,13 +387,13 @@ export default function Dashboard() {
                   R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 font-light">
-                  Ativas + Inativas
+                  Ativos + Inativos
                 </p>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* % Alunas Ativas */}
+          {/* % Alunos Ativos */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -402,7 +402,7 @@ export default function Dashboard() {
             <Card className="card-premium">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-sm text-muted-foreground font-light">
-                  % Alunas Ativas
+                  % Alunos Ativos
                 </CardTitle>
                 <TrendingUp className="h-5 w-5 text-success" />
               </CardHeader>
@@ -411,7 +411,7 @@ export default function Dashboard() {
                   {Math.round(stats.percentualAtivas)}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 font-light">
-                  vs Inativas
+                  vs Inativos
                 </p>
               </CardContent>
             </Card>
@@ -525,7 +525,7 @@ export default function Dashboard() {
                       onCheckedChange={(checked) => setShowOnlyAtivas(checked as boolean)}
                     />
                     <label htmlFor="only-ativas" className="text-xs font-light cursor-pointer">
-                      Apenas Ativas
+                      Apenas Ativos
                     </label>
                   </div>
                 </div>
@@ -568,7 +568,7 @@ export default function Dashboard() {
                       <Bar 
                         dataKey="ativas" 
                         fill="hsl(var(--primary))" 
-                        name="Ativas"
+                        name="Ativos"
                         radius={[8, 8, 0, 0]}
                       />
                     )}

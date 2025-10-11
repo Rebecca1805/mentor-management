@@ -30,7 +30,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const TABLES = [
-  { value: "alunas", label: "Alunas", keyField: "email" },
+  { value: "alunas", label: "Alunos", keyField: "email" },
   { value: "observacoes_mentora", label: "Observações Mentora", keyField: "id" },
   { value: "planos_acao", label: "Planos de Ação", keyField: "id" },
   { value: "vendas", label: "Vendas", keyField: "id" },
@@ -314,7 +314,7 @@ export default function BackupRestauracao() {
             </Button>
 
             <p className="text-xs text-muted-foreground font-light">
-              <strong>Nota:</strong> Alunas são identificadas por email; demais por ID.
+              <strong>Nota:</strong> Alunos são identificados por email; demais por ID.
               Registros existentes serão atualizados.
             </p>
           </CardContent>

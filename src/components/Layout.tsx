@@ -11,11 +11,13 @@ import {
   LogOut,
   Sparkles,
   Download,
+  BookOpen,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Painel Alunas", href: "/painel-alunas", icon: UserPlus },
+  { name: "Painel Alunos", href: "/painel-alunas", icon: UserPlus },
+  { name: "Catálogo", href: "/catalogo-cursos", icon: BookOpen },
   { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
   { name: "Backup", href: "/backup", icon: Download },
 ];

@@ -189,7 +189,7 @@ export default function PainelAlunas() {
 
   const breadcrumbItems = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Painel Alunas", href: "/painel-alunas" },
+    { label: "Painel Alunos", href: "/painel-alunas" },
     { label: activeTab === "cadastrar" ? "Cadastrar" : "Buscar" },
   ];
 
@@ -203,10 +203,10 @@ export default function PainelAlunas() {
 
       <div className="space-y-2">
         <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
-          Painel Alunas
+          Painel Alunos
         </h1>
         <p className="text-muted-foreground font-light">
-          Gerencie suas alunas de forma eficiente
+          Gerencie seus alunos de forma eficiente
         </p>
       </div>
 
@@ -222,9 +222,9 @@ export default function PainelAlunas() {
               {isEdit && (
                 <div className="flex items-center justify-between mb-6 pb-6 border-b">
                   <div>
-                    <h2 className="text-2xl font-poppins" style={{ fontWeight: 700 }}>Editar Aluna</h2>
+                    <h2 className="text-2xl font-poppins" style={{ fontWeight: 700 }}>Editar Aluno</h2>
                     <p className="text-sm text-muted-foreground font-light mt-1">
-                      Atualize as informações da aluna
+                      Atualize as informações do aluno
                     </p>
                   </div>
                   <Button variant="ghost" onClick={handleCancelEdit}>
@@ -236,9 +236,9 @@ export default function PainelAlunas() {
               
               {!isEdit && (
                 <div className="mb-6 pb-6 border-b">
-                  <h2 className="text-2xl font-poppins" style={{ fontWeight: 700 }}>Nova Aluna</h2>
+                  <h2 className="text-2xl font-poppins" style={{ fontWeight: 700 }}>Novo Aluno</h2>
                   <p className="text-sm text-muted-foreground font-light mt-1">
-                    Preencha os dados para cadastrar uma nova aluna
+                    Preencha os dados para cadastrar um novo aluno
                   </p>
                 </div>
               )}
