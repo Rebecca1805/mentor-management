@@ -43,11 +43,7 @@ export function useAllProfiles() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "mentora")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
