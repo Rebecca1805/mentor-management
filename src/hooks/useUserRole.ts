@@ -18,6 +18,8 @@ export function useUserRole() {
 
       return { isAdmin: data === true, isLoading: false };
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }

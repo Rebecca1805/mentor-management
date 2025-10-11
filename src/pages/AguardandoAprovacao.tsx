@@ -1,4 +1,5 @@
 import { useProfile } from "@/hooks/useProfile";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -6,10 +7,21 @@ import { Clock, Mail, CheckCircle } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function AguardandoAprovacao() {
   const { data: profile } = useProfile();
+  const { data: roleData } = useUserRole();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (roleData?.isAdmin || (profile && profile.status !== 'pendente')) {
+      const timer = setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [roleData, profile, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -70,6 +82,9 @@ export default function AguardandoAprovacao() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={() => navigate("/dashboard")} variant="default" size="lg">
+                Ir para o Dashboard
+              </Button>
               <Button onClick={handleLogout} variant="outline" size="lg">
                 Fazer Logout
               </Button>
