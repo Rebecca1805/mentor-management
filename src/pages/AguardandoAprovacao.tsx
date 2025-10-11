@@ -88,7 +88,7 @@ export default function AguardandoAprovacao() {
             </div>
 
             <p className="text-xs text-muted-foreground mt-8">
-              Tempo médio de aprovação: 24-48 horas
+              Tempo médio de aprovação: Até 24 horas
             </p>
           </CardContent>
         </Card>
