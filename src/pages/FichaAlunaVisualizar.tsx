@@ -24,7 +24,7 @@ export default function FichaAlunaVisualizar() {
   }
 
   if (!aluna) {
-    return <div className="p-8">Aluna não encontrada</div>;
+    return <div className="p-8">Aluno não encontrado</div>;
   }
 
   const cursosConcluidos = getCursosConcluidos(aluna);

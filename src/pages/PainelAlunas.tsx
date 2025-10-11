@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAluna, useCreateAluna, useUpdateAluna, useAlunas, CursoAdquirido, getCursosConcluidos } from "@/hooks/useAlunas";
+import { useCursos, useAlunoCursos, useCreateAlunoCurso, useUpdateAlunoCurso, useDeleteAlunoCurso, getVersaoVigenteParaData, useCursoVersoes } from "@/hooks/useCursos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,14 +19,6 @@ import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaCardSkeleton } from "@/components/LoadingSkeletons";
 
-const CURSOS_DISPONIVEIS = [
-  "Curso de Marketing Digital",
-  "Curso de Vendas Online",
-  "Curso de Empreendedorismo",
-  "Curso de Gestão de Negócios",
-  "Curso de Instagram para Negócios",
-  "Curso de Produtividade",
-];
 
 const CURSO_STATUS_LABELS = {
   nao_iniciado: "Não Iniciado",
@@ -42,8 +35,13 @@ export default function PainelAlunas() {
   
   const { data: alunas, isLoading } = useAlunas();
   const { data: aluna } = useAluna(id ? Number(id) : undefined);
+  const { data: cursos = [] } = useCursos();
+  const { data: alunoCursos = [] } = useAlunoCursos(id ? Number(id) : 0);
   const createAluna = useCreateAluna();
   const updateAluna = useUpdateAluna();
+  const createAlunoCurso = useCreateAlunoCurso();
+  const updateAlunoCurso = useUpdateAlunoCurso();
+  const deleteAlunoCurso = useDeleteAlunoCurso();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -293,8 +291,8 @@ export default function PainelAlunas() {
                           <SelectValue placeholder="Selecione um curso" />
                         </SelectTrigger>
                         <SelectContent>
-                          {CURSOS_DISPONIVEIS.map((curso) => (
-                            <SelectItem key={curso} value={curso}>{curso}</SelectItem>
+                          {cursos.map((curso) => (
+                            <SelectItem key={curso.id} value={curso.nome}>{curso.nome}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -329,25 +327,28 @@ export default function PainelAlunas() {
                   <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos e Evolução</h3>
                   
                   <div className="space-y-4">
-                    {CURSOS_DISPONIVEIS.map((curso) => {
-                      const cursoData = formData.cursos_adquiridos.find(c => c.nome === curso);
+                    {cursos.map((curso) => {
+                      const cursoData = formData.cursos_adquiridos.find(c => c.nome === curso.nome);
                       const status = cursoData?.status || 'nao_iniciado';
                       const isAdded = !!cursoData;
 
                       return (
                         <div
-                          key={curso}
+                          key={curso.id}
                           className={`p-6 rounded-2xl border-2 transition-all ${
                             isAdded ? 'bg-muted/30 border-primary/30' : 'border-border/50'
                           }`}
                         >
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
-                              <h4 className="font-light text-lg mb-2">{curso}</h4>
+                              <h4 className="font-light text-lg mb-2">{curso.nome}</h4>
+                              {curso.descricao && (
+                                <p className="text-xs text-muted-foreground mb-2">{curso.descricao}</p>
+                              )}
                               {isAdded && (
                                 <Select
                                   value={status}
-                                  onValueChange={(value) => toggleCursoStatus(curso, value as CursoAdquirido['status'])}
+                                  onValueChange={(value) => toggleCursoStatus(curso.nome, value as CursoAdquirido['status'])}
                                 >
                                   <SelectTrigger className="w-full rounded-xl">
                                     <SelectValue />
@@ -367,7 +368,7 @@ export default function PainelAlunas() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeCurso(curso)}
+                                  onClick={() => removeCurso(curso.nome)}
                                   className="text-destructive"
                                 >
                                   Remover
@@ -377,7 +378,7 @@ export default function PainelAlunas() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => toggleCursoStatus(curso, 'nao_iniciado')}
+                                  onClick={() => toggleCursoStatus(curso.nome, 'nao_iniciado')}
                                 >
                                   Adicionar
                                 </Button>
@@ -517,16 +518,16 @@ export default function PainelAlunas() {
               className="empty-state"
             >
               <Search className="empty-state-icon" />
-              <h3 className="empty-state-title">Nenhuma aluna encontrada</h3>
+              <h3 className="empty-state-title">Nenhum aluno encontrado</h3>
               <p className="empty-state-description">
-                Tente ajustar os filtros ou cadastre uma nova aluna
+                Tente ajustar os filtros ou cadastre um novo aluno
               </p>
               <Button 
                 onClick={() => setSearchParams({ tab: "cadastrar" })} 
                 className="mt-4 btn-gradient"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Cadastrar Aluna
+                Cadastrar Aluno
               </Button>
             </motion.div>
           ) : (
