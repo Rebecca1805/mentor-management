@@ -100,7 +100,7 @@ export default function Relatorios() {
     >
       <div className="flex justify-between items-center mb-8">
         <div className="space-y-2">
-          <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins font-extralight">
+          <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
             Indicadores e Relatórios
           </h1>
           <p className="text-muted-foreground font-light">

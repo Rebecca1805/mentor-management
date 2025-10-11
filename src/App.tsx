@@ -15,6 +15,9 @@ import PainelAlunas from "./pages/PainelAlunas";
 import Relatorios from "./pages/Relatorios";
 import BackupRestauracao from "./pages/BackupRestauracao";
 import CatalogoCursos from "./pages/CatalogoCursos";
+import PainelMaster from "./pages/PainelMaster";
+import AguardandoAprovacao from "./pages/AguardandoAprovacao";
+import AcessoNegado from "./pages/AcessoNegado";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,8 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+            <Route path="/acesso-negado" element={<AcessoNegado />} />
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/aluna/:id" element={<ProtectedRoute><Layout><AlunaDetalhes /></Layout></ProtectedRoute>} />
             <Route path="/aluna/:id/ficha" element={<ProtectedRoute><Layout><FichaAlunaVisualizar /></Layout></ProtectedRoute>} />
@@ -38,6 +43,7 @@ const App = () => (
             <Route path="/relatorios" element={<ProtectedRoute><Layout><Relatorios /></Layout></ProtectedRoute>} />
             <Route path="/backup" element={<ProtectedRoute><Layout><BackupRestauracao /></Layout></ProtectedRoute>} />
             <Route path="/catalogo-cursos" element={<ProtectedRoute><Layout><CatalogoCursos /></Layout></ProtectedRoute>} />
+            <Route path="/painel-master" element={<ProtectedRoute requiresAdmin><Layout><PainelMaster /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

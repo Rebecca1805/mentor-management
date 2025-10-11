@@ -332,6 +332,45 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          full_name: string
+          id: string
+          status: string
+          subscription_expires_at: string | null
+          subscription_plan: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          full_name: string
+          id?: string
+          status?: string
+          subscription_expires_at?: string | null
+          subscription_plan?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          status?: string
+          subscription_expires_at?: string | null
+          subscription_plan?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -411,6 +450,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_approved_mentora: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

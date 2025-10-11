@@ -139,7 +139,7 @@ export default function CatalogoCursos() {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-light text-foreground">Catálogo de Cursos</h1>
+              <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>Catálogo de Cursos</h1>
               <p className="text-muted-foreground mt-1">Gerencie cursos e suas versões</p>
             </div>
             <Button onClick={() => handleOpenCursoDialog()} className="btn-gradient">

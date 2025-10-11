@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { signOut } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
@@ -12,20 +13,32 @@ import {
   Sparkles,
   Download,
   BookOpen,
+  Shield,
 } from "lucide-react";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Painel Alunos", href: "/painel-alunas", icon: UserPlus },
-  { name: "Catálogo", href: "/catalogo-cursos", icon: BookOpen },
-  { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
-  { name: "Backup", href: "/backup", icon: Download },
-];
+const getNavigation = (isAdmin: boolean) => {
+  const baseNav = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Painel Alunos", href: "/painel-alunas", icon: UserPlus },
+    { name: "Catálogo", href: "/catalogo-cursos", icon: BookOpen },
+    { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
+    { name: "Backup", href: "/backup", icon: Download },
+  ];
+
+  if (isAdmin) {
+    baseNav.push({ name: "Gerenciar Mentoras", href: "/painel-master", icon: Shield });
+  }
+
+  return baseNav;
+};
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: roleData } = useUserRole();
+  const isAdmin = roleData?.isAdmin || false;
+  const navigation = getNavigation(isAdmin);
 
   const handleLogout = async () => {
     try {
