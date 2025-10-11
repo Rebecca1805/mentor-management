@@ -53,6 +53,9 @@ export function useAllProfiles() {
       if (error) throw error;
       return data as Profile[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 

@@ -82,9 +82,6 @@ export default function AguardandoAprovacao() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={() => navigate("/dashboard")} variant="default" size="lg">
-                Ir para o Dashboard
-              </Button>
               <Button onClick={handleLogout} variant="outline" size="lg">
                 Fazer Logout
               </Button>
