@@ -19,6 +19,7 @@ const STATUS_LABELS = {
   em_andamento: "Em Andamento",
   cancelado: "Cancelado",
   interrompido: "Interrompido",
+  concluido: "Concluído",
 };
 
 const STATUS_COLORS = {
@@ -26,6 +27,7 @@ const STATUS_COLORS = {
   em_andamento: "bg-yellow-500/10 text-yellow-500",
   cancelado: "bg-red-500/10 text-red-500",
   interrompido: "bg-gray-500/10 text-gray-500",
+  concluido: "bg-green-500/10 text-green-500",
 };
 
 export const ObservacoesTable = ({ idAluna }: ObservacoesTableProps) => {
@@ -170,6 +172,7 @@ export const ObservacoesTable = ({ idAluna }: ObservacoesTableProps) => {
                   <SelectItem value="em_andamento">Em Andamento</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                   <SelectItem value="interrompido">Interrompido</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
                 </SelectContent>
               </Select>
             </div>

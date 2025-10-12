@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
 import { calcularTempoBase } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function FichaAlunaVisualizar() {
   const { id } = useParams();
@@ -51,7 +52,15 @@ export default function FichaAlunaVisualizar() {
     
     setIsExporting(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user?.id)
+        .single();
+      
+      const mentorName = profile?.full_name || 'N/A';
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas, mentorName);
       
       // Download automático
       const url = URL.createObjectURL(pdfBlob);
@@ -79,8 +88,16 @@ export default function FichaAlunaVisualizar() {
     
     setIsSharing(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user?.id)
+        .single();
+      
+      const mentorName = profile?.full_name || 'N/A';
       // Primeiro gera o PDF
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas, mentorName);
       
       if (!pdfBlob) {
         throw new Error("Erro ao gerar PDF");

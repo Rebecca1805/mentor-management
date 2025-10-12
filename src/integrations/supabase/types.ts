@@ -466,6 +466,7 @@ export type Database = {
         | "em_andamento"
         | "cancelado"
         | "interrompido"
+        | "concluido"
       plano_status: "iniciado" | "em_andamento" | "cancelado" | "interrompido"
     }
     CompositeTypes: {
@@ -601,6 +602,7 @@ export const Constants = {
         "em_andamento",
         "cancelado",
         "interrompido",
+        "concluido",
       ],
       plano_status: ["iniciado", "em_andamento", "cancelado", "interrompido"],
     },

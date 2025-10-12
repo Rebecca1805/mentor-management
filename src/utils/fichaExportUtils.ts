@@ -12,7 +12,7 @@ export const exportToCSV = async (
   const fileName = `ficha_${aluna.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
   
   // Cabeçalho do CSV
-  let csvContent = "Ficha da Aluna - MentorManagement\n\n";
+  let csvContent = "Ficha do Aluno - MentorManagement\n\n";
   
   // Dados da Aluna
   csvContent += "INFORMAÇÕES BÁSICAS\n";
@@ -83,7 +83,8 @@ export const exportToPDF = async (
   observacoes: ObservacaoMentora[],
   planos: PlanoAcao[],
   cursosConcluidos: number,
-  totalVendas: number
+  totalVendas: number,
+  mentorName: string = "N/A"
 ): Promise<Blob> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -97,7 +98,7 @@ export const exportToPDF = async (
   
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text("Ficha da Aluna", pageWidth / 2, 28, { align: "center" });
+  doc.text("Ficha do Aluno", pageWidth / 2, 28, { align: "center" });
   
   let yPos = 40;
   
@@ -118,6 +119,8 @@ export const exportToPDF = async (
   doc.text(`Tempo na Base: ${aluna.tempo_base} dias`, 14, yPos);
   yPos += 6;
   doc.text(`Curso Atual: ${aluna.curso_atual || "-"}`, 14, yPos);
+  yPos += 6;
+  doc.text(`Responsável: ${mentorName}`, 14, yPos);
   yPos += 10;
   
   // Cursos Adquiridos

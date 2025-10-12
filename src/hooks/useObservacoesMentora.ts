@@ -7,7 +7,7 @@ export interface ObservacaoMentora {
   id_aluna: number;
   plano_acao: string;
   prazo_execucao: string | null;
-  status: 'iniciado' | 'em_andamento' | 'cancelado' | 'interrompido';
+  status: 'iniciado' | 'em_andamento' | 'cancelado' | 'interrompido' | 'concluido';
   observacoes: string | null;
   user_id: string;
   created_at: string;

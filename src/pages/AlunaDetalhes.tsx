@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos, Venda } from "@/hooks/useAlunas";
+import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
 import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
-import { useCreateVenda, useUpdateVenda, useDeleteVenda } from "@/hooks/useVendas";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -10,11 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Plus, Trash2, FileText, Info, ShoppingCart } from "lucide-react";
+import { ArrowLeft, FileText, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
-import { VendaDialog } from "@/components/VendaDialog";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
 import { calcularTempoBase } from "@/lib/utils";
@@ -26,13 +23,6 @@ export default function AlunaDetalhes() {
   const { data: planos = [] } = usePlanosAcao(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
   const updatePlano = useUpdatePlanoAcao();
-  const createVenda = useCreateVenda();
-  const updateVenda = useUpdateVenda();
-  const deleteVenda = useDeleteVenda();
-
-  const [vendaDialogOpen, setVendaDialogOpen] = useState(false);
-  const [editingVenda, setEditingVenda] = useState<Venda | null>(null);
-  const [deletingVendaId, setDeletingVendaId] = useState<number | null>(null);
 
   if (isLoading) {
     return (
@@ -53,15 +43,24 @@ export default function AlunaDetalhes() {
     ? (cursosConcluidos / aluna.cursos_adquiridos.length) * 100
     : 0;
 
-  const vendasPorPeriodo = vendas.reduce((acc, venda) => {
-    const existing = acc.find(v => v.periodo === venda.periodo);
-    if (existing) {
-      existing.valor += venda.valor_vendido;
-    } else {
-      acc.push({ periodo: venda.periodo, valor: venda.valor_vendido });
-    }
-    return acc;
-  }, [] as { periodo: string; valor: number }[]);
+  const vendasPorPeriodo = vendas
+    .reduce((acc, venda) => {
+      const existing = acc.find(v => v.periodo === venda.periodo);
+      if (existing) {
+        existing.valor += venda.valor_vendido;
+      } else {
+        acc.push({ periodo: venda.periodo, valor: venda.valor_vendido });
+      }
+      return acc;
+    }, [] as { periodo: string; valor: number }[])
+    .sort((a, b) => {
+      // Ordenar por período no formato MM/AA (crescente)
+      const [mesA, anoA] = a.periodo.split('/');
+      const [mesB, anoB] = b.periodo.split('/');
+      const dataA = parseInt(`20${anoA}${mesA}`);
+      const dataB = parseInt(`20${anoB}${mesB}`);
+      return dataA - dataB;
+    });
 
   const totalVendas = vendas.reduce((sum, v) => sum + v.valor_vendido, 0);
 
@@ -71,27 +70,6 @@ export default function AlunaDetalhes() {
       : [...etapasConcluidas, etapa];
     
     updatePlano.mutate({ id: planoId, etapas_concluidas: novasEtapas });
-  };
-
-  const handleSaveVenda = (vendaData: Omit<Venda, 'id' | 'user_id' | 'created_at'>) => {
-    if (editingVenda) {
-      updateVenda.mutate({ id: editingVenda.id, ...vendaData });
-    } else {
-      createVenda.mutate(vendaData);
-    }
-    setEditingVenda(null);
-  };
-
-  const handleEditVenda = (venda: Venda) => {
-    setEditingVenda(venda);
-    setVendaDialogOpen(true);
-  };
-
-  const handleDeleteVenda = () => {
-    if (deletingVendaId) {
-      deleteVenda.mutate(deletingVendaId);
-      setDeletingVendaId(null);
-    }
   };
 
   return (
@@ -121,7 +99,7 @@ export default function AlunaDetalhes() {
               <h1 className="text-3xl font-bold mb-2">{aluna.nome}</h1>
               <p className="text-muted-foreground mb-2">{aluna.email}</p>
               <div className="flex gap-2">
-                <Badge variant={aluna.status === "Ativa" ? "default" : "secondary"}>
+                <Badge variant={aluna.status === "Ativo" ? "default" : "secondary"}>
                   {aluna.status}
                 </Badge>
                 <Tooltip>
@@ -288,7 +266,7 @@ export default function AlunaDetalhes() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
-              {/* Header com Total e Botão */}
+              {/* Header com Total */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total de Vendas</p>
@@ -296,21 +274,12 @@ export default function AlunaDetalhes() {
                     R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <Button onClick={() => { setEditingVenda(null); setVendaDialogOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar Venda
-                </Button>
               </div>
 
               {vendas.length === 0 ? (
                 <div className="empty-state py-8">
-                  <ShoppingCart className="empty-state-icon" />
                   <p className="empty-state-title">Nenhuma venda registrada</p>
-                  <p className="empty-state-description">Comece a registrar vendas para acompanhar o faturamento</p>
-                  <Button onClick={() => { setEditingVenda(null); setVendaDialogOpen(true); }} className="mt-4 btn-gradient">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Venda
-                  </Button>
+                  <p className="empty-state-description">Nenhuma venda foi registrada para este aluno</p>
                 </div>
               ) : (
                 <>
@@ -368,7 +337,6 @@ export default function AlunaDetalhes() {
                               <TableHead>Período</TableHead>
                               <TableHead>Produtos</TableHead>
                               <TableHead className="text-right">Valor</TableHead>
-                              <TableHead className="w-[100px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -391,28 +359,6 @@ export default function AlunaDetalhes() {
                                 <TableCell className="text-right font-semibold">
                                   R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleEditVenda(venda)}
-                      className="hover:scale-105 transition-transform rounded-lg"
-                      aria-label="Editar venda"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setDeletingVendaId(venda.id)}
-                      className="hover:scale-105 transition-transform rounded-lg"
-                      aria-label="Excluir venda"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                                  </div>
-                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -426,36 +372,7 @@ export default function AlunaDetalhes() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      {/* Dialogs */}
-      <VendaDialog
-        open={vendaDialogOpen}
-        onOpenChange={setVendaDialogOpen}
-        onSave={handleSaveVenda}
-        venda={editingVenda}
-        idAluna={Number(id)}
-      />
-
-      <AlertDialog open={!!deletingVendaId} onOpenChange={() => setDeletingVendaId(null)}>
-        <AlertDialogContent className="rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-poppins font-light">Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription className="font-light">
-              Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteVenda}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </motion.div>
-    </TooltipProvider>
+  </TooltipProvider>
   );
 }

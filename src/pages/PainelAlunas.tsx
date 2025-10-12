@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw, Plus, Edit } from "lucide-react";
+import { VendasSection } from "@/components/VendasSection";
 import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
@@ -57,7 +58,7 @@ export default function PainelAlunas() {
     email: "",
     curso_atual: "",
     cursos_adquiridos: [] as CursoAdquirido[],
-    status: "Ativa",
+    status: "Ativo",
     principais_dificuldades: [] as string[],
     observacoes_mentora: "",
     data_primeira_compra: "",
@@ -156,7 +157,7 @@ export default function PainelAlunas() {
       email: "",
       curso_atual: "",
       cursos_adquiridos: [],
-      status: "Ativa",
+      status: "Ativo",
       principais_dificuldades: [],
       observacoes_mentora: "",
       data_primeira_compra: "",
@@ -289,8 +290,8 @@ export default function PainelAlunas() {
                       <div className="flex items-center space-x-3 h-10">
                         <Switch
                           id="status"
-                          checked={formData.status === "Ativa"}
-                          onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "Ativa" : "Inativa" })}
+                          checked={formData.status === "Ativo"}
+                          onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "Ativo" : "Inativo" })}
                         />
                         <Label htmlFor="status" className="font-light cursor-pointer">
                           {formData.status}
@@ -460,6 +461,14 @@ export default function PainelAlunas() {
                   </div>
                 )}
 
+                {/* Vendas - Seção */}
+                {(isEdit && id) && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Vendas</h3>
+                    <VendasSection idAluna={Number(id)} />
+                  </div>
+                )}
+
                 <div className="flex gap-4 pt-6 border-t">
                   <Button type="submit" className="btn-gradient" disabled={createAluna.isPending || updateAluna.isPending}>
                     <Save className="mr-2 h-4 w-4" />
@@ -562,7 +571,7 @@ export default function PainelAlunas() {
                         </div>
                         <Badge
                           className={`badge-status ${
-                            aluna.status === "Ativa"
+                            aluna.status === "Ativo"
                               ? "bg-success/10 text-success ring-success/20"
                               : "bg-muted text-muted-foreground ring-border"
                           }`}
