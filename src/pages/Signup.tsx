@@ -9,6 +9,46 @@ import { toast } from "sonner";
 import { signUp } from "@/lib/supabase";
 import { Sparkles, Eye, EyeOff } from "lucide-react";
 
+// Utility function to calculate SHA-1 hash
+async function sha1Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+}
+
+// Check if password has been compromised using HIBP API
+async function isPasswordPwned(password: string): Promise<boolean> {
+  try {
+    const hash = await sha1Hex(password);
+    const prefix = hash.slice(0, 5);
+    const suffix = hash.slice(5);
+    
+    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      headers: { 'Add-Padding': 'true' },
+      cache: 'no-store',
+    });
+    
+    if (!response.ok) {
+      throw new Error('HIBP request failed');
+    }
+    
+    const text = await response.text();
+    const lines = text.split('\n');
+    
+    return lines.some(line => {
+      const hashSuffix = line.split(':')[0].trim();
+      return hashSuffix === suffix;
+    });
+  } catch (error) {
+    // Soft-fail: em caso de erro de rede, não bloquear o cadastro
+    console.warn('Não foi possível verificar senha vazada:', error);
+    return false;
+  }
+}
+
 export default function Signup() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,6 +62,14 @@ export default function Signup() {
     setLoading(true);
 
     try {
+      // Check if password has been compromised
+      const compromised = await isPasswordPwned(password);
+      if (compromised) {
+        toast.error("Esta senha já apareceu em vazamentos de dados. Por favor, escolha outra senha mais segura.");
+        setLoading(false);
+        return;
+      }
+
       await signUp(email, password, fullName);
       toast.success("Cadastro realizado! Faça login para continuar.");
       navigate("/login");
@@ -102,7 +150,9 @@ export default function Signup() {
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground font-light">Mínimo de 6 caracteres</p>
+                <p className="text-xs text-muted-foreground font-light">
+                  Mínimo de 6 caracteres. Verificamos se sua senha já apareceu em vazamentos para sua segurança.
+                </p>
               </div>
               <Button
                 type="submit"
