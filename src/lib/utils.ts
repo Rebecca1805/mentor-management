@@ -27,3 +27,29 @@ export function calcularTempoBase(
   const diff = Math.floor((dataFinal.getTime() - primeiraCompra.getTime()) / (1000 * 60 * 60 * 24));
   return Math.max(0, diff);
 }
+
+/**
+ * Formata uma data para o padrão brasileiro
+ * @param date - String ISO ou objeto Date
+ * @param formato - 'completo' (dd/mm/aaaa) ou 'mes-ano' (mm/aaaa)
+ * @returns String formatada ou 'N/A' se inválida
+ */
+export function formatarDataBR(
+  date: string | Date | null | undefined,
+  formato: 'completo' | 'mes-ano' = 'completo'
+): string {
+  if (!date) return 'N/A';
+  
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    
+    return formato === 'completo' 
+      ? `${dia}/${mes}/${ano}`
+      : `${mes}/${ano}`;
+  } catch {
+    return 'N/A';
+  }
+}

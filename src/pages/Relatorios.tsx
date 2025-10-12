@@ -1,77 +1,249 @@
-import { useAlunas, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useState } from "react";
-import { calcularTempoBase } from "@/lib/utils";
+import { useAlunas } from "@/hooks/useAlunas";
+import { useVendas as useVendasHook, getCursosConcluidos } from "@/hooks/useAlunas";
+import { DashboardFilters } from "@/components/DashboardFilters";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { DollarSign, TrendingUp, Clock, Download, Info } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { isWithinInterval, parseISO } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { calcularTempoBase, formatarDataBR } from "@/lib/utils";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))"];
+const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
 export default function Relatorios() {
-  const { data: alunas = [] } = useAlunas();
-  const { data: vendas = [] } = useVendas();
-  const [statusFiltro, setStatusFiltro] = useState<string>("Todos");
-
-  const alunasFiltradas = statusFiltro === "Todos" 
-    ? alunas 
-    : alunas.filter(a => a.status === statusFiltro);
-
-  // KPIs
-  const totalAlunas = alunasFiltradas.length;
-  const alunas_ativas = alunasFiltradas.filter(a => a.status === "Ativa").length;
-  const percentualAtivas = totalAlunas > 0 ? (alunas_ativas / totalAlunas) * 100 : 0;
-  const tempoBaseMedio = totalAlunas > 0
-    ? alunasFiltradas.reduce((sum, a) => sum + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao), 0) / totalAlunas
-    : 0;
-
-  // Vendas
-  const vendasFiltradas = vendas.filter(v => 
-    alunasFiltradas.some(a => a.id === v.id_aluna)
-  );
+  const { data: alunas, isLoading: isLoadingAlunas } = useAlunas();
+  const { data: vendas, isLoading: isLoadingVendas } = useVendasHook();
   
-  const receitaTotal = vendasFiltradas.reduce((sum, v) => sum + v.valor_vendido, 0);
-  const faturamentoPorAluna = totalAlunas > 0 ? receitaTotal / totalAlunas : 0;
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [selectedAlunas, setSelectedAlunas] = useState<number[]>([]);
+  const [selectedCursos, setSelectedCursos] = useState<string[]>([]);
 
-  // Distribuição por status
-  const statusData = [
-    { name: "Ativa", value: alunas.filter(a => a.status === "Ativa").length },
-    { name: "Inativa", value: alunas.filter(a => a.status === "Inativa").length },
-  ];
+  const isLoading = isLoadingAlunas || isLoadingVendas;
 
-  // Vendas por período
-  const vendasPorPeriodo = vendas.reduce((acc, venda) => {
-    const existing = acc.find(v => v.periodo === venda.periodo);
-    if (existing) {
-      existing.valor += venda.valor_vendido;
-    } else {
-      acc.push({ periodo: venda.periodo, valor: venda.valor_vendido });
-    }
-    return acc;
-  }, [] as { periodo: string; valor: number }[])
-  .sort((a, b) => a.periodo.localeCompare(b.periodo));
+  const filteredAlunas = useMemo(() => {
+    if (!alunas) return [];
 
-  // Vendas por produto
-  const vendasPorProduto = vendas.reduce((acc, venda) => {
-    venda.produtos.forEach(produto => {
-      const existing = acc.find(p => p.produto === produto);
-      if (existing) {
-        existing.valor += venda.valor_vendido / venda.produtos.length;
-      } else {
-        acc.push({ produto, valor: venda.valor_vendido / venda.produtos.length });
+    return alunas.filter((aluna) => {
+      // Date range filter (data_cadastro)
+      if (dateRange.from || dateRange.to) {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            if (!isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to })) {
+              return false;
+            }
+          } else if (dateRange.from) {
+            if (cadastroDate < dateRange.from) return false;
+          } else if (dateRange.to) {
+            if (cadastroDate > dateRange.to) return false;
+          }
+        } catch (e) {
+          return false;
+        }
       }
+
+      // Status filter
+      if (selectedStatus.length > 0 && !selectedStatus.includes(aluna.status)) {
+        return false;
+      }
+
+      // Aluna filter
+      if (selectedAlunas.length > 0 && !selectedAlunas.includes(aluna.id)) {
+        return false;
+      }
+
+      // Curso filter
+      if (selectedCursos.length > 0) {
+        const alunasCursos = aluna.cursos_adquiridos.map(c => c.nome);
+        if (!selectedCursos.some(curso => alunasCursos.includes(curso))) {
+          return false;
+        }
+      }
+
+      return true;
     });
-    return acc;
-  }, [] as { produto: string; valor: number }[])
-  .sort((a, b) => b.valor - a.valor)
-  .slice(0, 5);
+  }, [alunas, dateRange, selectedStatus, selectedAlunas, selectedCursos]);
+
+  const cursosUnicos = useMemo(() => {
+    if (!alunas) return [];
+    const cursos = new Set<string>();
+    alunas.forEach(aluna => {
+      aluna.cursos_adquiridos.forEach(curso => {
+        cursos.add(curso.nome);
+      });
+    });
+    return Array.from(cursos).sort();
+  }, [alunas]);
+
+  const stats = useMemo(() => {
+    if (!filteredAlunas || !vendas) {
+      return {
+        faturamentoAtivas: 0,
+        faturamentoTotal: 0,
+        percentualAtivas: 0,
+        tempoMedio: 0,
+      };
+    }
+
+    const alunasAtivas = filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa");
+    const idsAtivas = new Set(alunasAtivas.map(a => a.id));
+    const idsTotal = new Set(filteredAlunas.map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas;
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendas.filter(venda => {
+        try {
+          // Parse periodo (formato YYYY-MM ou similar)
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const faturamentoAtivas = vendasFiltradas
+      .filter(v => idsAtivas.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const faturamentoTotal = vendasFiltradas
+      .filter(v => idsTotal.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const tempoMedio = filteredAlunas.length > 0
+      ? filteredAlunas.reduce((acc, a) => acc + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao), 0) / filteredAlunas.length
+      : 0;
+
+    const percentualAtivas = filteredAlunas.length > 0
+      ? (alunasAtivas.length / filteredAlunas.length) * 100
+      : 0;
+
+    return {
+      faturamentoAtivas,
+      faturamentoTotal,
+      percentualAtivas,
+      tempoMedio: Math.round(tempoMedio),
+    };
+  }, [filteredAlunas, vendas, dateRange]);
+
+  const statusData = useMemo(() => {
+    if (!filteredAlunas) return [];
+    const ativas = filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa").length;
+    const inativas = filteredAlunas.length - ativas;
+    return [
+      { name: "Ativos", value: ativas },
+      { name: "Inativos", value: inativas },
+    ];
+  }, [filteredAlunas]);
+
+  const faturamentoPorPeriodo = useMemo(() => {
+    if (!vendas || !filteredAlunas) return [];
+
+    const idsAlunas = new Set(filteredAlunas.map(a => a.id));
+    const idsAtivas = new Set(filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa").map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas.filter(v => idsAlunas.has(v.id_aluna));
+    
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendasFiltradas.filter(venda => {
+        try {
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const porPeriodo = vendasFiltradas.reduce((acc, venda) => {
+      const periodo = venda.periodo;
+      if (!acc[periodo]) {
+        acc[periodo] = { periodo, ativas: 0, todas: 0 };
+      }
+      const valor = venda.valor_vendido;
+      acc[periodo].todas += valor;
+      if (idsAtivas.has(venda.id_aluna)) {
+        acc[periodo].ativas += valor;
+      }
+      return acc;
+    }, {} as Record<string, { periodo: string; ativas: number; todas: number }>);
+
+    return Object.values(porPeriodo)
+      .sort((a, b) => a.periodo.localeCompare(b.periodo))
+      .slice(-12); // últimos 12 períodos
+  }, [vendas, filteredAlunas, dateRange]);
+
+  const evolucaoData = useMemo(() => {
+    if (!alunas) return [];
+    
+    // Group by data_cadastro
+    let alunasParaEvolucao = alunas;
+    
+    // Apply date range filter
+    if (dateRange.from || dateRange.to) {
+      alunasParaEvolucao = alunas.filter(aluna => {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return cadastroDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return cadastroDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+    
+    const porMes = alunasParaEvolucao.reduce((acc, aluna) => {
+      const mes = aluna.data_cadastro.substring(0, 7);
+      acc[mes] = (acc[mes] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Cumulative count
+    const sorted = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
+    let cumulative = 0;
+    
+    return sorted.map(([mes, quantidade]) => {
+      cumulative += quantidade;
+      return { mes: formatarDataBR(mes + "-01", 'mes-ano'), quantidade: cumulative };
+    });
+  }, [alunas, dateRange]);
 
   const exportarCSV = () => {
     const headers = ["Nome", "Email", "Status", "Cursos Concluídos", "Tempo Base", "Receita Total"];
-    const rows = alunasFiltradas.map(aluna => {
-      const vendasAluna = vendas.filter(v => v.id_aluna === aluna.id);
+    const rows = filteredAlunas.map(aluna => {
+      const vendasAluna = vendas?.filter(v => v.id_aluna === aluna.id) || [];
       const receitaAluna = vendasAluna.reduce((sum, v) => sum + v.valor_vendido, 0);
       return [
         aluna.nome,
@@ -92,216 +264,336 @@ export default function Relatorios() {
     a.click();
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8"
-    >
-      <div className="flex justify-between items-center mb-8">
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
         <div className="space-y-2">
-          <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
-            Indicadores e Relatórios
-          </h1>
-          <p className="text-muted-foreground font-light">
-            Análise completa de desempenho e vendas
-          </p>
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
         </div>
-        <div className="flex gap-4">
-          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-            <SelectTrigger className="w-[180px] rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todos">Todos</SelectItem>
-              <SelectItem value="Ativa">Apenas Ativas</SelectItem>
-              <SelectItem value="Inativa">Apenas Inativas</SelectItem>
-            </SelectContent>
-          </Select>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-3 pt-6">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-[300px] w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const handleResetFilters = () => {
+    setDateRange({ from: undefined, to: undefined } as DateRange);
+    setSelectedStatus([]);
+    setSelectedAlunas([]);
+    setSelectedCursos([]);
+  };
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-between items-start"
+        >
+          <div className="space-y-2">
+            <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
+              Relatórios e Análises
+            </h1>
+            <p className="text-muted-foreground font-light">
+              Visão completa do faturamento e evolução da base de alunos
+            </p>
+          </div>
           <Button onClick={exportarCSV} className="btn-gradient">
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.2 }}>
-          <Card className="card-premium border-primary/30 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-sm font-light text-muted-foreground">Total de Alunas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-poppins font-semibold text-primary">{totalAlunas}</p>
-            </CardContent>
-          </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, duration: 0.2 }}>
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="text-sm font-light text-muted-foreground">% Ativas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-poppins font-semibold text-success">{percentualAtivas.toFixed(1)}%</p>
-              <p className="text-xs text-muted-foreground font-light mt-1">{alunas_ativas} de {totalAlunas}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Filters */}
+        <DashboardFilters
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          selectedAlunas={selectedAlunas}
+          onAlunasChange={setSelectedAlunas}
+          selectedCursos={selectedCursos}
+          onCursosChange={setSelectedCursos}
+          availableAlunas={alunas?.map(a => ({ id: a.id, nome: a.nome })) || []}
+          availableCursos={cursosUnicos}
+          onReset={handleResetFilters}
+        />
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.2 }}>
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="text-sm font-light text-muted-foreground">Tempo Base Médio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-poppins font-semibold">{Math.round(tempoBaseMedio)}</p>
-              <p className="text-sm text-muted-foreground font-light">dias</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Faturamento Alunas Ativas - Destaque */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="md:col-span-2 lg:col-span-1"
+          >
+            <Card className="card-premium border-primary/30 shadow-lg hover:shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Ativos
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento de alunos ativos"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-light">Faturamento total de alunos ativos no período selecionado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-primary" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunos ativos: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                  R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <Badge variant="secondary" className="mt-2 font-light text-xs">
+                  Destaque Principal
+                </Badge>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25, duration: 0.2 }}>
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="text-sm font-light text-muted-foreground">Faturamento/Aluna</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-poppins font-semibold text-secondary">
-                R$ {faturamentoPorAluna.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Distribuição por Status */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.2 }}>
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="font-poppins font-light text-lg">Distribuição por Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 300,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Receita Total */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.2 }}>
-          <Card className="card-premium">
-            <CardHeader>
-              <CardTitle className="font-poppins font-light text-lg">Receita Total</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-[300px]">
-              <div className="text-center">
-                <p className="text-6xl font-poppins font-semibold text-primary">
-                  R$ {receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {/* Faturamento Total - Estilo suave */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.15, duration: 0.2 }}
+          >
+            <Card className="card-premium opacity-75 hover:opacity-100">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Total
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento total"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-light">Inclui ativos e inativos no período selecionado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-secondary" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl text-secondary/80 font-poppins font-light" aria-label={`Faturamento total: R$ ${stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                  R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  Ativos + Inativos
                 </p>
-                <p className="text-muted-foreground font-light mt-2">Período Total</p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-      {/* Evolução de Vendas */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.2 }}>
-        <Card className="card-premium mb-6">
-          <CardHeader>
-            <CardTitle className="font-poppins font-light text-lg">Evolução de Vendas por Período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={vendasPorPeriodo}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis 
-                  dataKey="periodo" 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: '12px', fontWeight: 300 }}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: '12px', fontWeight: 300 }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 300,
-                  }}
-                  formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
-                <Line
-                  type="monotone"
-                  dataKey="valor"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  name="Valor Vendido"
-                  dot={{ fill: 'hsl(var(--primary))', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </motion.div>
+          {/* % Alunos Ativos */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  % Alunos Ativos
+                </CardTitle>
+                <TrendingUp className="h-5 w-5 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>
+                  {Math.round(stats.percentualAtivas)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  vs Inativos
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-      {/* Vendas por Produto */}
-      {vendasPorProduto.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.2 }}>
+          {/* Tempo Médio */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  Tempo Médio
+                </CardTitle>
+                <Clock className="h-5 w-5 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>
+                  {stats.tempoMedio}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  dias na base
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Evolução de Alunas - Linha */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-poppins font-light text-lg">
+                    Evolução de Alunos na Base
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={evolucaoData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="mes" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="quantidade" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      name="Total Acumulado"
+                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Distribuição por Status - Pizza */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <CardTitle className="font-poppins font-light text-lg">Distribuição por Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Faturamento por Período - Barra */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle className="font-poppins font-light text-lg">Top 5 Produtos por Valor</CardTitle>
+              <CardTitle className="font-poppins font-light text-lg">Faturamento por Período</CardTitle>
+              <p className="text-xs text-muted-foreground font-light">Últimos 12 períodos</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={vendasPorProduto} layout="vertical">
+                <BarChart data={faturamentoPorPeriodo}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis 
-                    type="number" 
+                    dataKey="periodo" 
                     stroke="hsl(var(--muted-foreground))"
                     style={{ fontSize: '12px', fontWeight: 300 }}
                   />
                   <YAxis 
-                    dataKey="produto" 
-                    type="category" 
-                    width={150} 
                     stroke="hsl(var(--muted-foreground))"
                     style={{ fontSize: '12px', fontWeight: 300 }}
                   />
-                  <Tooltip 
+                  <RechartsTooltip 
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
@@ -311,17 +603,25 @@ export default function Relatorios() {
                     }}
                     formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   />
+                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
                   <Bar 
-                    dataKey="valor" 
+                    dataKey="ativas" 
                     fill="hsl(var(--primary))" 
-                    radius={[0, 8, 8, 0]} 
+                    name="Faturamento Ativos"
+                    radius={[8, 8, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="todas" 
+                    fill="hsl(var(--secondary))" 
+                    name="Faturamento Total"
+                    radius={[8, 8, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
-      )}
-    </motion.div>
+      </div>
+    </TooltipProvider>
   );
 }

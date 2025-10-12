@@ -3,22 +3,36 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, PauseCircle, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
 
 export default function PainelMaster() {
   const { user } = useAuth();
   const { data: profiles = [], isLoading } = useAllProfiles();
   const updateProfile = useUpdateProfile();
+  const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
 
   const handleUpdateStatus = (userId: string, status: 'ativa' | 'suspensa' | 'inativa') => {
-    updateProfile.mutate({
+    const updateData: any = {
       userId,
       status,
       approvedBy: status === 'ativa' ? user?.id : undefined
-    });
+    };
+
+    if (status === 'ativa') {
+      const selectedPlan = selectedPlans[userId] || 'estrategico';
+      updateData.subscriptionPlan = selectedPlan;
+      updateData.subscriptionExpiresAt = new Date(
+        Date.now() + 365 * 24 * 60 * 60 * 1000 // 1 ano
+      ).toISOString();
+    }
+
+    updateProfile.mutate(updateData);
   };
 
   const getStatusBadge = (status: string) => {
@@ -136,26 +150,50 @@ export default function PainelMaster() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-3">
                     {profile.status === 'pendente' && (
                       <>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleUpdateStatus(profile.user_id, 'ativa')}
-                          className="btn-gradient"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Aprovar
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleUpdateStatus(profile.user_id, 'inativa')}
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Recusar
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground whitespace-nowrap">Plano:</Label>
+                          <Select 
+                            value={selectedPlans[profile.user_id] || 'estrategico'} 
+                            onValueChange={(value) => setSelectedPlans(prev => ({ ...prev, [profile.user_id]: value }))}
+                          >
+                            <SelectTrigger className="h-8 w-[160px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="estrategico">
+                                Estratégico ✅
+                              </SelectItem>
+                              <SelectItem value="condutor" disabled>
+                                Condutor 🔒
+                              </SelectItem>
+                              <SelectItem value="visionario" disabled>
+                                Visionário 🔒
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleUpdateStatus(profile.user_id, 'ativa')}
+                            className="btn-gradient"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleUpdateStatus(profile.user_id, 'inativa')}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Recusar
+                          </Button>
+                        </div>
                       </>
                     )}
                     {profile.status === 'ativa' && (

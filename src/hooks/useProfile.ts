@@ -62,11 +62,15 @@ export function useUpdateProfile() {
     mutationFn: async ({ 
       userId, 
       status, 
-      approvedBy 
+      approvedBy,
+      subscriptionPlan,
+      subscriptionExpiresAt
     }: { 
       userId: string; 
       status: Profile['status'];
       approvedBy?: string;
+      subscriptionPlan?: string;
+      subscriptionExpiresAt?: string;
     }) => {
       const updateData: any = { 
         status,
@@ -76,6 +80,12 @@ export function useUpdateProfile() {
       if (status === 'ativa') {
         updateData.approved_at = new Date().toISOString();
         updateData.approved_by = approvedBy;
+        if (subscriptionPlan) {
+          updateData.subscription_plan = subscriptionPlan;
+        }
+        if (subscriptionExpiresAt) {
+          updateData.subscription_expires_at = subscriptionExpiresAt;
+        }
       }
 
       const { data, error } = await supabase
