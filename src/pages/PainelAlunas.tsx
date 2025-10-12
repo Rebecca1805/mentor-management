@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaCardSkeleton } from "@/components/LoadingSkeletons";
-import { calcularTempoBase } from "@/lib/utils";
+import { calcularTempoBase, formatarDataBR } from "@/lib/utils";
 
 
 const CURSO_STATUS_LABELS = {
@@ -83,18 +83,9 @@ export default function PainelAlunas() {
 
   // Calculate tempo_base automatically based on data_primeira_compra and status
   const tempoBaseCalculado = useMemo(() => {
-    const baseDateStr = formData.data_primeira_compra || aluna?.data_primeira_compra;
-    if (!baseDateStr) return 0;
-
-    const primeiraCompra = new Date(baseDateStr);
-    const isInativo = formData.status === "Inativo" || formData.status === "Inativa";
-    const dataFinal = isInativo && aluna?.data_inativacao
-      ? new Date(aluna.data_inativacao)
-      : new Date();
-
-    const diff = Math.floor((dataFinal.getTime() - primeiraCompra.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, diff);
-  }, [formData.data_primeira_compra, aluna?.data_primeira_compra, aluna?.data_inativacao, formData.status]);
+    const baseDateStr = formData.data_primeira_compra || aluna?.data_primeira_compra || null;
+    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null);
+  }, [formData.data_primeira_compra, formData.status, aluna?.data_primeira_compra, aluna?.data_inativacao]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
@@ -302,7 +293,7 @@ export default function PainelAlunas() {
                       <div className="space-y-2">
                         <Label className="font-light">Data de Cadastro</Label>
                         <Input
-                          value={aluna?.data_cadastro || ""}
+                          value={formatarDataBR(aluna?.data_cadastro)}
                           disabled
                           className="rounded-xl font-light bg-muted"
                         />

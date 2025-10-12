@@ -18,15 +18,32 @@ export function calcularTempoBase(
   data_inativacao: string | null
 ): number {
   if (!data_primeira_compra) return 0;
-  
-  const primeiraCompra = new Date(data_primeira_compra);
+
+  const parseDateFlexible = (value: string): Date | null => {
+    if (!value) return null;
+    if (value.includes('/')) {
+      const [dd, mm, yyyy] = value.split('/');
+      const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd)));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [y, m, d] = value.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const primeiraCompra = parseDateFlexible(data_primeira_compra);
+  if (!primeiraCompra) return 0;
+
   const isInativo = status === "Inativo" || status === "Inativa";
-  const dataFinal = isInativo && data_inativacao
-    ? new Date(data_inativacao)
-    : new Date();
-  
-  const diff = Math.floor((dataFinal.getTime() - primeiraCompra.getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(0, diff);
+  const dataFinalRaw = isInativo && data_inativacao ? parseDateFlexible(data_inativacao) : new Date();
+  const dataFinal = dataFinalRaw ?? new Date();
+
+  const diffMs = dataFinal.getTime() - primeiraCompra.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
 }
 
 /**
