@@ -82,7 +82,7 @@ export default function AlunaDetalhes() {
       >
         <Button
         variant="ghost"
-        onClick={() => navigate("/dashboard")}
+        onClick={() => navigate("/painel-alunas")}
         className="mb-6"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />

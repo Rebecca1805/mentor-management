@@ -121,7 +121,7 @@ export default function FichaAlunaVisualizar() {
       <div className="flex justify-between items-center mb-6 print:hidden">
         <Button
           variant="ghost"
-          onClick={() => navigate(`/aluna/${id}`)}
+          onClick={() => navigate(`/painel-alunas`)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
