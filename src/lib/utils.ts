@@ -20,7 +20,8 @@ export function calcularTempoBase(
   if (!data_primeira_compra) return 0;
   
   const primeiraCompra = new Date(data_primeira_compra);
-  const dataFinal = status === "Inativa" && data_inativacao
+  const isInativo = status === "Inativo" || status === "Inativa";
+  const dataFinal = isInativo && data_inativacao
     ? new Date(data_inativacao)
     : new Date();
   

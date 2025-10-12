@@ -83,16 +83,18 @@ export default function PainelAlunas() {
 
   // Calculate tempo_base automatically based on data_primeira_compra and status
   const tempoBaseCalculado = useMemo(() => {
-    if (!aluna?.data_primeira_compra) return 0;
-    
-    const primeiraCompra = new Date(aluna.data_primeira_compra);
-    const dataFinal = formData.status === "Inativa" && aluna.data_inativacao
+    const baseDateStr = formData.data_primeira_compra || aluna?.data_primeira_compra;
+    if (!baseDateStr) return 0;
+
+    const primeiraCompra = new Date(baseDateStr);
+    const isInativo = formData.status === "Inativo" || formData.status === "Inativa";
+    const dataFinal = isInativo && aluna?.data_inativacao
       ? new Date(aluna.data_inativacao)
       : new Date();
-    
+
     const diff = Math.floor((dataFinal.getTime() - primeiraCompra.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, diff);
-  }, [aluna?.data_primeira_compra, aluna?.data_inativacao, formData.status]);
+  }, [formData.data_primeira_compra, aluna?.data_primeira_compra, aluna?.data_inativacao, formData.status]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
