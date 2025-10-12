@@ -84,7 +84,7 @@ export default function PainelAlunas() {
   // Calculate tempo_base automatically based on data_primeira_compra and status
   const tempoBaseCalculado = useMemo(() => {
     const baseDateStr = formData.data_primeira_compra || aluna?.data_primeira_compra || null;
-    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null);
+    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null, formData.data_ultima_compra || aluna?.data_ultima_compra || null);
   }, [formData.data_primeira_compra, formData.status, aluna?.data_primeira_compra, aluna?.data_inativacao]);
 
   const filteredAlunas = useMemo(() => {
@@ -604,7 +604,7 @@ export default function PainelAlunas() {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-light">
                           <Calendar className="h-3.5 w-3.5" />
                           <span title="Tempo desde a primeira compra">
-                            {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
+                            {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
                           </span>
                         </div>
                       )}

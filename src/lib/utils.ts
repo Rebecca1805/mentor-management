@@ -15,7 +15,8 @@ export function cn(...inputs: ClassValue[]) {
 export function calcularTempoBase(
   data_primeira_compra: string | null,
   status: string,
-  data_inativacao: string | null
+  data_inativacao: string | null,
+  data_ultima_compra?: string | null
 ): number {
   if (!data_primeira_compra) return 0;
 
@@ -38,7 +39,9 @@ export function calcularTempoBase(
   if (!primeiraCompra) return 0;
 
   const isInativo = status === "Inativo" || status === "Inativa";
-  const dataFinalRaw = isInativo && data_inativacao ? parseDateFlexible(data_inativacao) : new Date();
+  const dataFinalRaw = isInativo && data_inativacao
+    ? parseDateFlexible(data_inativacao)
+    : (data_ultima_compra ? parseDateFlexible(data_ultima_compra) : new Date());
   const dataFinal = dataFinalRaw ?? new Date();
 
   const diffMs = dataFinal.getTime() - primeiraCompra.getTime();

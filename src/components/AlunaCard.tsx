@@ -67,11 +67,11 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
             </p>
           </div>
 
-          {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao) > 0 && (
+          {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra) > 0 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
               <span className="font-light" title="Tempo desde a primeira compra">
-                {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
+                {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
               </span>
             </div>
           )}

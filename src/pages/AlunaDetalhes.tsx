@@ -105,7 +105,7 @@ export default function AlunaDetalhes() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="cursor-help">
-                      {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao)} dias na base
+                      {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
