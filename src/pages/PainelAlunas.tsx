@@ -56,7 +56,6 @@ export default function PainelAlunas() {
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
-    curso_atual: "",
     cursos_adquiridos: [] as CursoAdquirido[],
     status: "Ativo",
     principais_dificuldades: [] as string[],
@@ -71,7 +70,6 @@ export default function PainelAlunas() {
       setFormData({
         nome: aluna.nome,
         email: aluna.email,
-        curso_atual: aluna.curso_atual || "",
         cursos_adquiridos: aluna.cursos_adquiridos || [],
         status: aluna.status,
         principais_dificuldades: aluna.principais_dificuldades || [],
@@ -155,7 +153,6 @@ export default function PainelAlunas() {
     setFormData({
       nome: "",
       email: "",
-      curso_atual: "",
       cursos_adquiridos: [],
       status: "Ativo",
       principais_dificuldades: [],
@@ -284,32 +281,17 @@ export default function PainelAlunas() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2 md:col-span-1">
-                      <Label htmlFor="status" className="font-light">Status</Label>
-                      <div className="flex items-center space-x-3 h-10">
-                        <Switch
-                          id="status"
-                          checked={formData.status === "Ativo"}
-                          onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "Ativo" : "Inativo" })}
-                        />
-                        <Label htmlFor="status" className="font-light cursor-pointer">
-                          {formData.status}
-                        </Label>
-                      </div>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="curso_atual" className="font-light">Curso Atual</Label>
-                      <Select value={formData.curso_atual} onValueChange={(value) => setFormData({ ...formData, curso_atual: value })}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue placeholder="Selecione um curso" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cursos.map((curso) => (
-                            <SelectItem key={curso.id} value={curso.nome}>{curso.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="font-light">Status</Label>
+                    <div className="flex items-center space-x-3 h-10">
+                      <Switch
+                        id="status"
+                        checked={formData.status === "Ativo"}
+                        onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "Ativo" : "Inativo" })}
+                      />
+                      <Label htmlFor="status" className="font-light cursor-pointer">
+                        {formData.status}
+                      </Label>
                     </div>
                   </div>
 
