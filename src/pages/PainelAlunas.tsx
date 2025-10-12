@@ -320,81 +320,106 @@ export default function PainelAlunas() {
 
                 {/* Cursos */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos e Evolução</h3>
-                  
-                  <div className="space-y-4">
-                    {cursos.map((curso) => {
-                      const cursoData = formData.cursos_adquiridos.find(c => c.nome === curso.nome);
-                      const status = cursoData?.status || 'nao_iniciado';
-                      const isAdded = !!cursoData;
+                  <div>
+                    <h3 className="text-lg font-poppins mb-2" style={{ fontWeight: 700 }}>Adicionar Curso</h3>
+                    <p className="text-sm text-muted-foreground font-light mb-4">
+                      Selecione os cursos que o aluno adquiriu
+                    </p>
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        const curso = cursos.find(c => c.nome === value);
+                        if (curso && !formData.cursos_adquiridos.find(c => c.nome === value)) {
+                          toggleCursoStatus(value, 'nao_iniciado');
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Selecione um curso para adicionar" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {cursos
+                          .filter(curso => !formData.cursos_adquiridos.find(c => c.nome === curso.nome))
+                          .map((curso) => (
+                            <SelectItem key={curso.id} value={curso.nome}>
+                              {curso.nome}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      return (
-                        <div
-                          key={curso.id}
-                          className={`p-6 rounded-2xl border-2 transition-all ${
-                            isAdded ? 'bg-muted/30 border-primary/30' : 'border-border/50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h4 className="font-light text-lg mb-2">{curso.nome}</h4>
-                              {curso.descricao && (
-                                <p className="text-xs text-muted-foreground mb-2">{curso.descricao}</p>
-                              )}
-                              {isAdded && (
-                                <Select
-                                  value={status}
-                                  onValueChange={(value) => toggleCursoStatus(curso.nome, value as CursoAdquirido['status'])}
-                                >
-                                  <SelectTrigger className="w-full rounded-xl">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
-                                    <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
-                                    <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
-                                    <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                            <div className="ml-4">
-                              {isAdded ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos e Evolução</h3>
+                    
+                    {formData.cursos_adquiridos.length === 0 ? (
+                      <div className="p-8 text-center border-2 border-dashed rounded-2xl">
+                        <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-sm text-muted-foreground font-light">
+                          Nenhum curso adicionado ainda
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {formData.cursos_adquiridos.map((cursoAdquirido) => {
+                          const curso = cursos.find(c => c.nome === cursoAdquirido.nome);
+                          return (
+                            <div
+                              key={cursoAdquirido.nome}
+                              className="p-6 rounded-2xl border-2 bg-muted/30 border-primary/30"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-3">
+                                  <div>
+                                    <h4 className="font-light text-lg">{cursoAdquirido.nome}</h4>
+                                    {curso?.descricao && (
+                                      <p className="text-xs text-muted-foreground mt-1">{curso.descricao}</p>
+                                    )}
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs font-light">Status de Evolução</Label>
+                                    <Select
+                                      value={cursoAdquirido.status}
+                                      onValueChange={(value) => toggleCursoStatus(cursoAdquirido.nome, value as CursoAdquirido['status'])}
+                                    >
+                                      <SelectTrigger className="rounded-xl">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-background z-50">
+                                        <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
+                                        <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
+                                        <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
+                                        <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeCurso(curso.nome)}
-                                  className="text-destructive"
+                                  onClick={() => removeCurso(cursoAdquirido.nome)}
+                                  className="text-destructive shrink-0"
                                 >
-                                  Remover
+                                  <X className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => toggleCursoStatus(curso.nome, 'nao_iniciado')}
-                                >
-                                  Adicionar
-                                </Button>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
 
-                  <div className="p-4 bg-muted/50 rounded-xl">
-                    <p className="text-sm font-light">
-                      <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
-                      {formData.cursos_adquiridos.length}
-                    </p>
-                    <p className="text-sm font-light mt-1">
-                      <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
-                      {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
-                    </p>
+                        <div className="p-4 bg-muted/50 rounded-xl">
+                          <p className="text-sm font-light">
+                            <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
+                            {formData.cursos_adquiridos.length}
+                          </p>
+                          <p className="text-sm font-light mt-1">
+                            <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
+                            {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
