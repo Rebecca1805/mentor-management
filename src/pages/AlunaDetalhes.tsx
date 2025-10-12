@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, FileText, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
-import { ObservacoesTable } from "@/components/ObservacoesTable";
+import { ObservacoesTableReadOnly } from "@/components/ObservacoesTableReadOnly";
 import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
 import { calcularTempoBase } from "@/lib/utils";
 
@@ -175,14 +175,14 @@ export default function AlunaDetalhes() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="pt-4">
-              <p className="text-muted-foreground mb-4">
-                {aluna.principais_dificuldades || "Nenhuma dificuldade registrada"}
-              </p>
-              {aluna.observacoes_mentora && (
-                <div className="bg-background/50 rounded-lg p-4">
-                  <p className="text-sm font-semibold mb-2">Observações da Mentora</p>
-                  <p className="text-sm">{aluna.observacoes_mentora}</p>
-                </div>
+              {aluna.principais_dificuldades && aluna.principais_dificuldades.length > 0 ? (
+                <ul className="list-disc list-inside space-y-2">
+                  {aluna.principais_dificuldades.map((dif, idx) => (
+                    <li key={idx} className="text-muted-foreground">{dif}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">Nenhuma dificuldade registrada</p>
               )}
             </div>
           </AccordionContent>
@@ -194,68 +194,7 @@ export default function AlunaDetalhes() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="pt-4">
-              <ObservacoesTable idAluna={Number(id)} />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="planos" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
-          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Planos de Ação ({planos.length})
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-4 pt-4">
-              <Button onClick={() => navigate(`/aluna/${id}/novo-plano`)} className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Plano de Ação
-              </Button>
-              {planos.map((plano) => (
-                <div key={plano.id} className="bg-background/50 rounded-lg p-4 space-y-3">
-                  <div>
-                    <h4 className="font-semibold mb-1">{plano.objetivo}</h4>
-                    {plano.resultado_esperado && (
-                      <p className="text-sm text-muted-foreground">{plano.resultado_esperado}</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    {plano.data_inicio && (
-                      <div>
-                        <span className="text-muted-foreground">Início:</span> {plano.data_inicio}
-                      </div>
-                    )}
-                    {plano.data_fim_prevista && (
-                      <div>
-                        <span className="text-muted-foreground">Previsão:</span> {plano.data_fim_prevista}
-                      </div>
-                    )}
-                    {plano.data_fim_real && (
-                      <div>
-                        <span className="text-muted-foreground">Concluído:</span> {plano.data_fim_real}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold">Etapas:</p>
-                    {plano.etapas.map((etapa, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={plano.etapas_concluidas.includes(etapa)}
-                          onCheckedChange={() => toggleEtapa(plano.id, etapa, plano.etapas_concluidas)}
-                        />
-                        <span className={plano.etapas_concluidas.includes(etapa) ? "line-through text-muted-foreground" : ""}>
-                          {etapa}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {plano.resultados_obtidos && (
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-sm font-semibold mb-1">Resultados Obtidos</p>
-                      <p className="text-sm text-muted-foreground">{plano.resultados_obtidos}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              <ObservacoesTableReadOnly idAluna={Number(id)} />
             </div>
           </AccordionContent>
         </AccordionItem>

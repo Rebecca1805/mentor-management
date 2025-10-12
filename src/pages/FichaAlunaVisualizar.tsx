@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
 import { calcularTempoBase } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -284,29 +285,91 @@ export default function FichaAlunaVisualizar() {
         </div>
         
         {vendas.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b">
-                <tr className="text-left">
-                  <th className="pb-2 font-semibold">Período</th>
-                  <th className="pb-2 font-semibold">Produtos</th>
-                  <th className="pb-2 font-semibold text-right">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendas.map((venda) => (
-                  <tr key={venda.id} className="border-b last:border-0">
-                    <td className="py-2">{venda.periodo}</td>
-                    <td className="py-2">
-                      {venda.produtos.length > 0 ? venda.produtos.join(", ") : "-"}
-                    </td>
-                    <td className="py-2 text-right font-semibold">
-                      R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </td>
+          <div className="space-y-6">
+            {/* Gráfico de Evolução */}
+            <div>
+              <h3 className="text-sm font-semibold mb-4">Evolução de Vendas</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={vendas
+                    .reduce((acc, venda) => {
+                      const existing = acc.find(v => v.periodo === venda.periodo);
+                      if (existing) {
+                        existing.valor += venda.valor_vendido;
+                      } else {
+                        acc.push({ periodo: venda.periodo, valor: venda.valor_vendido });
+                      }
+                      return acc;
+                    }, [] as { periodo: string; valor: number }[])
+                    .sort((a, b) => {
+                      const [mesA, anoA] = a.periodo.split('/');
+                      const [mesB, anoB] = b.periodo.split('/');
+                      const dataA = parseInt(`20${anoA}${mesA}`);
+                      const dataB = parseInt(`20${anoB}${mesB}`);
+                      return dataA - dataB;
+                    })}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="periodo" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                      formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '12px', fontWeight: 300 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="valor" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      name="Valor"
+                      dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Tabela de Vendas */}
+            <div className="overflow-x-auto">
+              <h3 className="text-sm font-semibold mb-4">Detalhes das Vendas</h3>
+              <table className="w-full text-sm">
+                <thead className="border-b">
+                  <tr className="text-left">
+                    <th className="pb-2 font-semibold">Período</th>
+                    <th className="pb-2 font-semibold">Produtos</th>
+                    <th className="pb-2 font-semibold text-right">Valor</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {vendas.map((venda) => (
+                    <tr key={venda.id} className="border-b last:border-0">
+                      <td className="py-2">{venda.periodo}</td>
+                      <td className="py-2">
+                        {venda.produtos.length > 0 ? venda.produtos.join(", ") : "-"}
+                      </td>
+                      <td className="py-2 text-right font-semibold">
+                        R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhuma venda registrada</p>

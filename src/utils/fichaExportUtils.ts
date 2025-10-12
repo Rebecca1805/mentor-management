@@ -242,6 +242,14 @@ export const exportToPDF = async (
   doc.text("VENDAS", 14, yPos);
   yPos += 8;
   
+  // Nota sobre gráfico
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text("Nota: O gráfico de evolução de vendas está disponível na visualização online da ficha.", 14, yPos);
+  yPos += 8;
+  doc.setTextColor(0);
+  
   if (vendas.length > 0) {
     const vendasData = vendas.map(venda => [
       venda.periodo,
