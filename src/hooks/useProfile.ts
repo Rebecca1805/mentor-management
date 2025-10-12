@@ -77,15 +77,17 @@ export function useUpdateProfile() {
         updated_at: new Date().toISOString()
       };
       
-      if (status === 'ativa') {
+      if (status === 'ativa' && !updateData.approved_at) {
         updateData.approved_at = new Date().toISOString();
         updateData.approved_by = approvedBy;
-        if (subscriptionPlan) {
-          updateData.subscription_plan = subscriptionPlan;
-        }
-        if (subscriptionExpiresAt) {
-          updateData.subscription_expires_at = subscriptionExpiresAt;
-        }
+      }
+      
+      // Permitir atualizar plano e expiração independentemente do status
+      if (subscriptionPlan) {
+        updateData.subscription_plan = subscriptionPlan;
+      }
+      if (subscriptionExpiresAt) {
+        updateData.subscription_expires_at = subscriptionExpiresAt;
       }
 
       const { data, error } = await supabase
@@ -100,7 +102,8 @@ export function useUpdateProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
-      toast.success("Status atualizado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Perfil atualizado com sucesso");
     },
     onError: (error: Error) => {
       toast.error(`Erro ao atualizar status: ${error.message}`);
