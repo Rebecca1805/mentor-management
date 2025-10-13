@@ -451,6 +451,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      validate_shared_ficha_token: {
+        Args: { p_token: string }
+        Returns: {
+          expires_at: string
+          id_aluna: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "mentora"
