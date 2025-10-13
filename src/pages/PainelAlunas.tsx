@@ -39,6 +39,7 @@ export default function PainelAlunas() {
     nome: "",
     email: "",
     status: "Ativo",
+    data_cadastro: new Date().toISOString().split('T')[0],
     principais_dificuldades: [] as string[],
   });
 
@@ -47,6 +48,12 @@ export default function PainelAlunas() {
     data_compra: new Date().toISOString().split('T')[0],
     status_evolucao: 'nao_iniciado' as const,
   });
+
+  const [cursosPendentes, setCursosPendentes] = useState<Array<{
+    id_curso: number;
+    data_compra: string;
+    status_evolucao: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
+  }>>([]);
 
   const isEdit = !!id;
 
@@ -57,6 +64,7 @@ export default function PainelAlunas() {
         nome: aluna.nome || "",
         email: aluna.email || "",
         status: aluna.status || "Ativo",
+        data_cadastro: aluna.data_cadastro || new Date().toISOString().split('T')[0],
         principais_dificuldades: aluna.principais_dificuldades || [],
       });
     }
@@ -75,13 +83,45 @@ export default function PainelAlunas() {
         toast.success("Aluno atualizado!");
         navigate("/painel-alunas?tab=buscar");
       } else {
-        await createAluna.mutateAsync(formData);
-        toast.success("Aluno cadastrado!");
-        setFormData({ nome: "", email: "", status: "Ativo", principais_dificuldades: [] });
+        const novaAluna = await createAluna.mutateAsync(formData);
+        
+        if (cursosPendentes.length > 0) {
+          for (const curso of cursosPendentes) {
+            await createAlunoCurso.mutateAsync({
+              id_aluna: novaAluna.id,
+              ...curso,
+              id_versao: null,
+            });
+          }
+        }
+        
+        toast.success(`Aluno cadastrado${cursosPendentes.length > 0 ? ' com cursos' : ''}!`);
+        setFormData({ nome: "", email: "", status: "Ativo", data_cadastro: new Date().toISOString().split('T')[0], principais_dificuldades: [] });
+        setCursosPendentes([]);
+        navigate("/painel-alunas?tab=buscar");
       }
     } catch (error: any) {
       toast.error(error.message || "Erro ao salvar");
     }
+  };
+
+  const handleAdicionarCursoPendente = () => {
+    if (!novoCurso.id_curso) {
+      toast.error("Selecione um curso");
+      return;
+    }
+    
+    setCursosPendentes([...cursosPendentes, novoCurso]);
+    setNovoCurso({
+      id_curso: 0,
+      data_compra: new Date().toISOString().split('T')[0],
+      status_evolucao: 'nao_iniciado',
+    });
+    toast.success("Curso adicionado à lista!");
+  };
+
+  const handleRemoverCursoPendente = (index: number) => {
+    setCursosPendentes(cursosPendentes.filter((_, i) => i !== index));
   };
 
   const handleAdicionarCurso = async () => {
@@ -124,9 +164,11 @@ export default function PainelAlunas() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buscar">Buscar Alunas</TabsTrigger>
-            <TabsTrigger value="cadastrar">{isEdit ? "Editar" : "Cadastrar"} Aluno</TabsTrigger>
+          <TabsList className="flex gap-2 w-full">
+            <TabsTrigger value="buscar" className="flex-1">Buscar Alunos</TabsTrigger>
+            <TabsTrigger value="cadastrar" className="flex-1">
+              {isEdit ? "Editar Aluno" : "Cadastrar Aluno"}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="buscar" className="space-y-6 mt-8">
@@ -193,6 +235,17 @@ export default function PainelAlunas() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="data_cadastro">Data de Cadastro *</Label>
+                      <Input
+                        id="data_cadastro"
+                        type="date"
+                        value={formData.data_cadastro}
+                        onChange={(e) => setFormData({ ...formData, data_cadastro: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
                       <div className="flex items-center space-x-3">
                         <Switch
@@ -205,12 +258,20 @@ export default function PainelAlunas() {
                     </div>
                   </div>
 
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-poppins font-bold">Principais Dificuldades</h3>
+                    <DifficultyTags
+                      tags={formData.principais_dificuldades}
+                      onChange={(tags) => setFormData({ ...formData, principais_dificuldades: tags })}
+                    />
+                  </div>
+
                   {isEdit && aluna && (
                     <div className="space-y-6">
-                      <h3 className="text-lg font-poppins font-bold">Cursos</h3>
+                      <h3 className="text-lg font-poppins font-bold">Cursos Vinculados</h3>
                       
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <Select
                             value={novoCurso.id_curso.toString()}
                             onValueChange={(v) => setNovoCurso({ ...novoCurso, id_curso: Number(v) })}
@@ -228,7 +289,22 @@ export default function PainelAlunas() {
                             type="date"
                             value={novoCurso.data_compra}
                             onChange={(e) => setNovoCurso({ ...novoCurso, data_compra: e.target.value })}
+                            placeholder="Data de Ativação"
                           />
+                          <Select
+                            value={novoCurso.status_evolucao}
+                            onValueChange={(v) => setNovoCurso({ ...novoCurso, status_evolucao: v as any })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nao_iniciado">Não Iniciado</SelectItem>
+                              <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                              <SelectItem value="pausado">Pausado</SelectItem>
+                              <SelectItem value="concluido">Concluído</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Button type="button" onClick={handleAdicionarCurso}>
                             <Plus className="h-4 w-4 mr-2" />
                             Adicionar
@@ -241,7 +317,7 @@ export default function PainelAlunas() {
                               <div>
                                 <p className="font-medium">{ac.cursos?.nome || "Curso"}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  Compra: {new Date(ac.data_compra).toLocaleDateString('pt-BR')}
+                                  Ativação: {new Date(ac.data_compra).toLocaleDateString('pt-BR')}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -278,13 +354,80 @@ export default function PainelAlunas() {
                     </div>
                   )}
 
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-poppins font-bold">Principais Dificuldades</h3>
-                    <DifficultyTags
-                      tags={formData.principais_dificuldades}
-                      onChange={(tags) => setFormData({ ...formData, principais_dificuldades: tags })}
-                    />
-                  </div>
+                  {!isEdit && (
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-poppins font-bold">Adicionar Cursos</h3>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <Select
+                            value={novoCurso.id_curso.toString()}
+                            onValueChange={(v) => setNovoCurso({ ...novoCurso, id_curso: Number(v) })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um curso" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cursos.map((c) => (
+                                <SelectItem key={c.id} value={c.id.toString()}>{c.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="date"
+                            value={novoCurso.data_compra}
+                            onChange={(e) => setNovoCurso({ ...novoCurso, data_compra: e.target.value })}
+                            placeholder="Data de Ativação"
+                          />
+                          <Select
+                            value={novoCurso.status_evolucao}
+                            onValueChange={(v) => setNovoCurso({ ...novoCurso, status_evolucao: v as any })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nao_iniciado">Não Iniciado</SelectItem>
+                              <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                              <SelectItem value="pausado">Pausado</SelectItem>
+                              <SelectItem value="concluido">Concluído</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" onClick={handleAdicionarCursoPendente}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar
+                          </Button>
+                        </div>
+
+                        {cursosPendentes.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Cursos a serem vinculados após salvar:</p>
+                            {cursosPendentes.map((cp, index) => (
+                              <div key={index} className="flex items-center justify-between p-4 border rounded bg-muted/30">
+                                <div>
+                                  <p className="font-medium">{cursos.find(c => c.id === cp.id_curso)?.nome || "Curso"}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Ativação: {new Date(cp.data_compra).toLocaleDateString('pt-BR')} • 
+                                    Status: {cp.status_evolucao === 'nao_iniciado' ? 'Não Iniciado' : 
+                                            cp.status_evolucao === 'em_andamento' ? 'Em Andamento' :
+                                            cp.status_evolucao === 'pausado' ? 'Pausado' : 'Concluído'}
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoverCursoPendente(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {isEdit && aluna && (
                     <div className="space-y-6">
