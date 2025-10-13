@@ -5,7 +5,7 @@ import { useVendas as useVendasHook, getCursosConcluidos } from "@/hooks/useAlun
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DollarSign, TrendingUp, Clock, Download, Info } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
@@ -305,29 +305,27 @@ export default function Relatorios() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-start"
-        >
-          <div className="space-y-2">
-            <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
-              Relatórios e Análises
-            </h1>
-            <p className="text-muted-foreground font-light">
-              Visão completa do faturamento e evolução da base de alunos
-            </p>
-          </div>
-          <Button onClick={exportarCSV} className="btn-gradient">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
-        </motion.div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-2"
+      >
+        <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
+          Relatórios
+        </h1>
+        <p className="text-muted-foreground font-light">
+          Análises e estatísticas detalhadas sobre suas alunas
+        </p>
+      </motion.div>
 
-        {/* Filters */}
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+      >
         <DashboardFilters
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
@@ -337,215 +335,129 @@ export default function Relatorios() {
           onAlunasChange={setSelectedAlunas}
           selectedCursos={selectedCursos}
           onCursosChange={setSelectedCursos}
-          availableAlunas={alunas?.map(a => ({ id: a.id, nome: a.nome })) || []}
+          availableAlunas={alunas || []}
           availableCursos={cursosUnicos}
           onReset={handleResetFilters}
         />
+      </motion.div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Faturamento Alunas Ativas - Destaque */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, duration: 0.2 }}
-            className="md:col-span-2 lg:col-span-1"
-          >
-            <Card className="card-premium border-primary/30 shadow-lg hover:shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm text-muted-foreground font-light">
-                    Faturamento Ativos
-                  </CardTitle>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-                        aria-label="Informações sobre faturamento de alunos ativos"
-                      >
-                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs font-light">Faturamento total de alunos ativos no período selecionado</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <DollarSign className="h-5 w-5 text-primary" aria-hidden="true" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunos ativos: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
-                  R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-                <Badge variant="secondary" className="mt-2 font-light text-xs">
-                  Destaque Principal
-                </Badge>
-              </CardContent>
-            </Card>
-          </motion.div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="card-premium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Faturamento (Ativas)
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.percentualAtivas.toFixed(1)}% de alunas ativas
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Faturamento Total - Estilo suave */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15, duration: 0.2 }}
-          >
-            <Card className="card-premium opacity-75 hover:opacity-100">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm text-muted-foreground font-light">
-                    Faturamento Total
-                  </CardTitle>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-                        aria-label="Informações sobre faturamento total"
-                      >
-                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs font-light">Inclui ativos e inativos no período selecionado</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <DollarSign className="h-5 w-5 text-secondary" aria-hidden="true" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl text-secondary/80 font-poppins font-light" aria-label={`Faturamento total: R$ ${stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
-                  R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 font-light">
-                  Ativos + Inativos
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="card-premium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Faturamento Total
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-secondary">
+                R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ativas + Inativas
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* % Alunos Ativos */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="card-premium">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-sm text-muted-foreground font-light">
-                  % Alunos Ativos
-                </CardTitle>
-                <TrendingUp className="h-5 w-5 text-success" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>
-                  {Math.round(stats.percentualAtivas)}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 font-light">
-                  vs Inativos
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="card-premium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tempo Médio (Base)
+              </CardTitle>
+              <Clock className="h-4 w-4 text-accent" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-accent">
+                {stats.tempoMedio} dias
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Permanência média
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Tempo Médio */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="card-premium">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-sm text-muted-foreground font-light">
-                  Tempo Médio
-                </CardTitle>
-                <Clock className="h-5 w-5 text-accent" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>
-                  {stats.tempoMedio}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 font-light">
-                  dias na base
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="card-premium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total de Alunas
+              </CardTitle>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {filteredAlunas.length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Após filtros aplicados
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Evolução de Alunas - Linha */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <Card className="card-premium">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="font-poppins font-light text-lg">
-                    Evolução de Alunos na Base
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={evolucaoData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis 
-                      dataKey="mes" 
-                      stroke="hsl(var(--muted-foreground))"
-                      style={{ fontSize: '12px', fontWeight: 300 }}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))"
-                      style={{ fontSize: '12px', fontWeight: 300 }}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: 300,
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="quantidade" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      name="Total Acumulado"
-                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Distribuição por Status - Pizza */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="card-premium">
-              <CardHeader>
-                <CardTitle className="font-poppins font-light text-lg">Distribuição por Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle>Distribuição por Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={statusData}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -553,75 +465,73 @@ export default function Relatorios() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: 300,
-                      }}
-                    />
+                    <RechartsTooltip />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        {/* Faturamento por Período - Barra */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.7 }}
         >
           <Card className="card-premium">
             <CardHeader>
-              <CardTitle className="font-poppins font-light text-lg">Faturamento por Período</CardTitle>
-              <p className="text-xs text-muted-foreground font-light">Últimos 12 períodos</p>
+              <CardTitle>Faturamento por Período</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={faturamentoPorPeriodo}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis 
-                    dataKey="periodo" 
-                    stroke="hsl(var(--muted-foreground))"
-                    style={{ fontSize: '12px', fontWeight: 300 }}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    style={{ fontSize: '12px', fontWeight: 300 }}
-                  />
-                  <RechartsTooltip 
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 300,
-                    }}
-                    formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
-                  <Bar 
-                    dataKey="ativas" 
-                    fill="hsl(var(--primary))" 
-                    name="Faturamento Ativos"
-                    radius={[8, 8, 0, 0]}
-                  />
-                  <Bar 
-                    dataKey="todas" 
-                    fill="hsl(var(--secondary))" 
-                    name="Faturamento Total"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={faturamentoPorPeriodo}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="periodo" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Legend />
+                    <Bar dataKey="ativas" fill="hsl(var(--primary))" name="Ativas (R$)" />
+                    <Bar dataKey="todas" fill="hsl(var(--secondary))" name="Total (R$)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
-    </TooltipProvider>
+
+      {/* Evolution Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <Card className="card-premium">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Evolução de Alunas Cadastradas</CardTitle>
+            <Button onClick={exportarCSV} size="sm" variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar CSV
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={evolucaoData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="quantidade" stroke="hsl(var(--primary))" name="Total Acumulado" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   );
 }

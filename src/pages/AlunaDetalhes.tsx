@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -26,11 +26,9 @@ export default function AlunaDetalhes() {
 
   if (isLoading) {
     return (
-      <TooltipProvider>
-        <div className="p-8">
-          <AlunaDetalhesSkeleton />
-        </div>
-      </TooltipProvider>
+      <div className="p-8">
+        <AlunaDetalhesSkeleton />
+      </div>
     );
   }
 
@@ -73,124 +71,158 @@ export default function AlunaDetalhes() {
   };
 
   return (
-    <TooltipProvider>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="p-8 max-w-6xl mx-auto"
-      >
-        <Button
-        variant="ghost"
-        onClick={() => navigate("/painel-alunas")}
-        className="mb-6"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Voltar
-      </Button>
-
-      <div className="bg-card rounded-2xl p-8 shadow-elegant mb-8">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center text-3xl font-bold text-white">
-              {aluna.nome.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{aluna.nome}</h1>
-              <p className="text-muted-foreground mb-2">{aluna.email}</p>
-              <div className="flex gap-2">
-                <Badge variant={aluna.status === "Ativo" ? "default" : "secondary"}>
-                  {aluna.status}
-                </Badge>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="cursor-help">
-                      {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs font-light">Tempo desde a primeira compra</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/aluna/${id}/ficha`)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Ver Ficha
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="p-8 space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-4 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/painel-alunas")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
             </Button>
           </div>
-        </div>
-
-        {aluna.curso_atual && (
-          <div className="bg-background/50 rounded-xl p-4">
-            <p className="text-sm text-muted-foreground mb-1">Curso Atual</p>
-            <p className="font-semibold">{aluna.curso_atual}</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            {aluna.nome}
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant={aluna.status === "Ativo" || aluna.status === "Ativa" ? "default" : "secondary"}>
+              {aluna.status}
+            </Badge>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">{aluna.email}</span>
           </div>
-        )}
+        </div>
+        <Button onClick={() => navigate(`/aluna/${id}/ficha`)}>
+          <FileText className="h-4 w-4 mr-2" />
+          Ver Ficha Completa
+        </Button>
       </div>
 
-      <Accordion type="multiple" className="space-y-4">
-        <AccordionItem value="cursos" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
-          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Cursos Adquiridos
+      <Accordion type="multiple" className="space-y-4" defaultValue={["info", "cursos", "vendas"]}>
+        <AccordionItem value="info" className="border rounded-lg px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Informações Gerais</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Data de Cadastro</p>
+                <p className="text-lg font-medium">{new Date(aluna.data_cadastro).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tempo na Base</p>
+                <p className="text-lg font-medium">
+                  {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Curso Atual</p>
+                <p className="text-lg font-medium">{aluna.curso_atual || "Não informado"}</p>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="cursos" className="border rounded-lg px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Cursos</span>
+              <Badge variant="secondary">{aluna.cursos_adquiridos.length}</Badge>
+            </div>
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4 pt-4">
               <div>
-                <div className="flex justify-between mb-2">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-muted-foreground">Progresso Geral</span>
-                  <span className="text-sm font-semibold">{Math.round(progressoCursos)}%</span>
+                  <span className="text-sm font-medium">{cursosConcluidos} de {aluna.cursos_adquiridos.length} concluídos</span>
                 </div>
                 <Progress value={progressoCursos} className="h-2" />
               </div>
-              <div className="grid gap-2">
-                {aluna.cursos_adquiridos.map((curso, idx) => (
-                  <div key={idx} className="bg-background/50 rounded-lg p-3 flex justify-between items-center">
+              <div className="space-y-2">
+                {aluna.cursos_adquiridos.map((curso, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                     <span className="font-medium">{curso.nome}</span>
-                    <Badge variant={
-                      curso.status === 'concluido' ? 'default' : 
-                      curso.status === 'em_andamento' ? 'secondary' : 
-                      'outline'
-                    }>
-                      {curso.status === 'concluido' ? 'Concluído' :
-                       curso.status === 'em_andamento' ? 'Em Andamento' :
-                       curso.status === 'pausado' ? 'Pausado' :
-                       'Não Iniciado'}
+                    <Badge variant={curso.status === "concluido" ? "default" : "outline"}>
+                      {curso.status === "concluido" ? "Concluído" : "Em andamento"}
                     </Badge>
                   </div>
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {cursosConcluidos} de {aluna.cursos_adquiridos.length} cursos concluídos
-              </p>
             </div>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="dificuldades" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
-          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Principais Dificuldades
+        <AccordionItem value="vendas" className="border rounded-lg px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Vendas</span>
+              <Badge variant="secondary">R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Badge>
+            </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="pt-4">
-              {aluna.principais_dificuldades && aluna.principais_dificuldades.length > 0 ? (
-                <ul className="list-disc list-inside space-y-2">
-                  {aluna.principais_dificuldades.map((dif, idx) => (
-                    <li key={idx} className="text-muted-foreground">{dif}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">Nenhuma dificuldade registrada</p>
+            <div className="space-y-4 pt-4">
+              {vendasPorPeriodo.length > 0 && (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={vendasPorPeriodo}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="periodo" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="valor" stroke="hsl(var(--primary))" name="Valor (R$)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Produtos</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Observações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendas.map((venda) => (
+                    <TableRow key={venda.id}>
+                      <TableCell>{venda.periodo}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {venda.produtos.map((produto, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {produto}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {venda.observacoes || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="observacoes" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
-          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Observações e Planos da Mentora
+        <AccordionItem value="observacoes" className="border rounded-lg px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Observações da Mentora</span>
+            </div>
           </AccordionTrigger>
           <AccordionContent>
             <div className="pt-4">
@@ -199,119 +231,75 @@ export default function AlunaDetalhes() {
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="vendas" className="bg-card rounded-2xl shadow-elegant border-0 px-6">
-          <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-            Vendas ({vendas.length})
+        <AccordionItem value="planos" className="border rounded-lg px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Planos de Ação</span>
+              <Badge variant="secondary">{planos.length}</Badge>
+            </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-6 pt-4">
-              {/* Header com Total */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total de Vendas</p>
-                  <p className="text-3xl font-bold text-primary">
-                    R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-
-              {vendas.length === 0 ? (
-                <div className="empty-state py-8">
-                  <p className="empty-state-title">Nenhuma venda registrada</p>
-                  <p className="empty-state-description">Nenhuma venda foi registrada para este aluno</p>
-                </div>
+            <div className="space-y-4 pt-4">
+              {planos.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Nenhum plano de ação cadastrado</p>
               ) : (
-                <>
-                  {/* Layout: Gráfico e Tabela */}
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    {/* Gráfico */}
-                    <div className="order-2 lg:order-1">
-                      <h4 className="text-sm font-semibold mb-4">Evolução de Vendas</h4>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={vendasPorPeriodo}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                            <XAxis 
-                              dataKey="periodo" 
-                              stroke="hsl(var(--muted-foreground))"
-                              style={{ fontSize: '12px', fontWeight: 300 }}
-                            />
-                            <YAxis 
-                              stroke="hsl(var(--muted-foreground))"
-                              style={{ fontSize: '12px', fontWeight: 300 }}
-                            />
-                            <RechartsTooltip 
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                fontWeight: 300,
-                              }}
-                              formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                            />
-                            <Legend 
-                              wrapperStyle={{ fontSize: '12px', fontWeight: 300 }}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="valor" 
-                              stroke="hsl(var(--primary))" 
-                              strokeWidth={2}
-                              name="Valor"
-                              dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
+                planos.map((plano) => {
+                  const etapas = plano.etapas || [];
+                  const etapasConcluidas = plano.etapas_concluidas || [];
+                  const progresso = etapas.length > 0 ? (etapasConcluidas.length / etapas.length) * 100 : 0;
 
-                    {/* Tabela de Vendas */}
-                    <div className="order-1 lg:order-2 overflow-hidden">
-                      <h4 className="text-sm font-semibold mb-4">Detalhes das Vendas</h4>
-                      <div className="border rounded-xl overflow-hidden">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Período</TableHead>
-                              <TableHead>Produtos</TableHead>
-                              <TableHead className="text-right">Valor</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {vendas.map((venda) => (
-                              <TableRow key={venda.id}>
-                                <TableCell className="font-medium">{venda.periodo}</TableCell>
-                                <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {venda.produtos.length > 0 ? (
-                                      venda.produtos.map((prod, idx) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
-                                          {prod}
-                                        </Badge>
-                                      ))
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right font-semibold">
-                                  R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                  return (
+                    <div key={plano.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <h4 className="font-semibold">{plano.objetivo}</h4>
+                          <p className="text-sm text-muted-foreground">{plano.resultado_esperado}</p>
+                        </div>
+                        <Badge variant={plano.data_fim_real ? "default" : "outline"}>
+                          {plano.data_fim_real ? "Concluído" : "Em andamento"}
+                        </Badge>
                       </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Progresso</span>
+                          <span className="font-medium">{etapasConcluidas.length} de {etapas.length} etapas</span>
+                        </div>
+                        <Progress value={progresso} className="h-2" />
+                      </div>
+
+                      {etapas.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Etapas:</p>
+                          {etapas.map((etapa, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={etapasConcluidas.includes(etapa)}
+                                onCheckedChange={() => toggleEtapa(plano.id, etapa, etapasConcluidas)}
+                                disabled={!!plano.data_fim_real}
+                              />
+                              <span className={etapasConcluidas.includes(etapa) ? "line-through text-muted-foreground" : ""}>
+                                {etapa}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {plano.resultados_obtidos && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm font-medium mb-1">Resultados Obtidos:</p>
+                          <p className="text-sm text-muted-foreground">{plano.resultados_obtidos}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </>
+                  );
+                })
               )}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </motion.div>
-  </TooltipProvider>
   );
 }
