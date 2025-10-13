@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -49,6 +49,19 @@ export default function PainelAlunas() {
   });
 
   const isEdit = !!id;
+
+  // Carregar dados da aluna quando em modo de edição
+  useEffect(() => {
+    if (isEdit && aluna) {
+      setFormData({
+        nome: aluna.nome || "",
+        email: aluna.email || "",
+        status: aluna.status || "Ativo",
+        principais_dificuldades: aluna.principais_dificuldades || [],
+      });
+    }
+  }, [isEdit, aluna]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
