@@ -18,41 +18,44 @@ import { calcularTempoBase } from "@/lib/utils";
 import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
-
 export default function AlunaDetalhes() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
-  const { data: aluna, isLoading } = useAluna(Number(id));
-  const { data: alunoCursos = [] } = useAlunoCursos(Number(id));
-  const { data: vendas = [] } = useVendas(Number(id));
-  const { data: observacoes = [] } = useObservacoesMentora(Number(id));
-  const { data: profile } = useProfile();
+  const {
+    data: aluna,
+    isLoading
+  } = useAluna(Number(id));
+  const {
+    data: alunoCursos = []
+  } = useAlunoCursos(Number(id));
+  const {
+    data: vendas = []
+  } = useVendas(Number(id));
+  const {
+    data: observacoes = []
+  } = useObservacoesMentora(Number(id));
+  const {
+    data: profile
+  } = useProfile();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-
   if (isLoading) {
-    return (
-      <div className="p-8">
+    return <div className="p-8">
         <AlunaDetalhesSkeleton />
-      </div>
-    );
+      </div>;
   }
-
   if (!aluna) {
     return <div className="p-8">Aluno não encontrado</div>;
   }
-
   const cursosConcluidos = alunoCursos.filter(ac => ac.status_evolucao === 'concluido').length;
-  const progressoCursos = alunoCursos.length > 0
-    ? (cursosConcluidos / alunoCursos.length) * 100
-    : 0;
-
+  const progressoCursos = alunoCursos.length > 0 ? cursosConcluidos / alunoCursos.length * 100 : 0;
   const captureChart = async (): Promise<string | null> => {
     if (!chartRef.current || vendasPorPeriodo.length === 0) {
       return null;
     }
-
     try {
       const canvas = await html2canvas(chartRef.current, {
         backgroundColor: '#ffffff',
@@ -60,14 +63,12 @@ export default function AlunaDetalhes() {
         logging: false,
         useCORS: true
       });
-      
       return canvas.toDataURL('image/png');
     } catch (error) {
       console.error('Erro ao capturar gráfico:', error);
       return null;
     }
   };
-
   const handleExportCSV = () => {
     if (!aluna) return;
     setIsExporting(true);
@@ -80,7 +81,6 @@ export default function AlunaDetalhes() {
       setIsExporting(false);
     }
   };
-
   const handleExportPDF = async () => {
     if (!aluna) return;
     setIsExporting(true);
@@ -100,7 +100,6 @@ export default function AlunaDetalhes() {
       setIsExporting(false);
     }
   };
-
   const handleShare = async () => {
     if (!aluna) return;
     setIsSharing(true);
@@ -114,34 +113,37 @@ export default function AlunaDetalhes() {
       setIsSharing(false);
     }
   };
-
-  const vendasPorPeriodo = vendas
-    .reduce((acc, venda) => {
-      const existing = acc.find(v => v.periodo === venda.periodo);
-      if (existing) {
-        existing.valor += venda.valor_vendido;
-      } else {
-        acc.push({ periodo: venda.periodo, valor: venda.valor_vendido });
-      }
-      return acc;
-    }, [] as { periodo: string; valor: number }[])
-    .sort((a, b) => {
-      const [mesA, anoA] = a.periodo.split('/');
-      const [mesB, anoB] = b.periodo.split('/');
-      const dataA = parseInt(`20${anoA}${mesA}`);
-      const dataB = parseInt(`20${anoB}${mesB}`);
-      return dataA - dataB;
-    });
-
+  const vendasPorPeriodo = vendas.reduce((acc, venda) => {
+    const existing = acc.find(v => v.periodo === venda.periodo);
+    if (existing) {
+      existing.valor += venda.valor_vendido;
+    } else {
+      acc.push({
+        periodo: venda.periodo,
+        valor: venda.valor_vendido
+      });
+    }
+    return acc;
+  }, [] as {
+    periodo: string;
+    valor: number;
+  }[]).sort((a, b) => {
+    const [mesA, anoA] = a.periodo.split('/');
+    const [mesB, anoB] = b.periodo.split('/');
+    const dataA = parseInt(`20${anoA}${mesA}`);
+    const dataB = parseInt(`20${anoB}${mesB}`);
+    return dataA - dataB;
+  });
   const totalVendas = vendas.reduce((sum, v) => sum + v.valor_vendido, 0);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="p-8 space-y-6"
-    >
+  return <motion.div initial={{
+    opacity: 0,
+    y: 20
+  }} animate={{
+    opacity: 1,
+    y: 0
+  }} transition={{
+    duration: 0.5
+  }} className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-4 mb-2">
@@ -196,10 +198,7 @@ export default function AlunaDetalhes() {
                   {calcularTempoBase(aluna.data_cadastro, aluna.status, aluna.data_inativacao)} dias
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Curso Atual</p>
-                <p className="text-lg font-medium">{aluna.curso_atual || "Não informado"}</p>
-              </div>
+              
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -214,11 +213,7 @@ export default function AlunaDetalhes() {
           <AccordionContent>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                {alunoCursos.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nenhum curso adquirido</p>
-                ) : (
-                  alunoCursos.map((alunoCurso: any) => (
-                    <div key={alunoCurso.id} className="flex items-center justify-between p-3 border rounded-lg">
+                {alunoCursos.length === 0 ? <p className="text-muted-foreground text-center py-8">Nenhum curso adquirido</p> : alunoCursos.map((alunoCurso: any) => <div key={alunoCurso.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">{alunoCurso.cursos?.nome || "Curso sem nome"}</p>
                         <p className="text-xs text-muted-foreground">
@@ -226,13 +221,9 @@ export default function AlunaDetalhes() {
                         </p>
                       </div>
                       <Badge variant={alunoCurso.status_evolucao === "concluido" ? "default" : "outline"}>
-                        {alunoCurso.status_evolucao === "concluido" ? "Concluído" : 
-                         alunoCurso.status_evolucao === "em_andamento" ? "Em andamento" :
-                         alunoCurso.status_evolucao === "pausado" ? "Pausado" : "Não iniciado"}
+                        {alunoCurso.status_evolucao === "concluido" ? "Concluído" : alunoCurso.status_evolucao === "em_andamento" ? "Em andamento" : alunoCurso.status_evolucao === "pausado" ? "Pausado" : "Não iniciado"}
                       </Badge>
-                    </div>
-                  ))
-                )}
+                    </div>)}
               </div>
             </div>
           </AccordionContent>
@@ -242,13 +233,14 @@ export default function AlunaDetalhes() {
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold">Vendas</span>
-              <Badge variant="secondary">R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Badge>
+              <Badge variant="secondary">R$ {totalVendas.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2
+              })}</Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4 pt-4">
-              {vendasPorPeriodo.length > 0 && (
-                <div ref={chartRef} className="h-[300px]">
+              {vendasPorPeriodo.length > 0 && <div ref={chartRef} className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={vendasPorPeriodo}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -259,8 +251,7 @@ export default function AlunaDetalhes() {
                       <Line type="monotone" dataKey="valor" stroke="hsl(var(--primary))" name="Valor (R$)" />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
-              )}
+                </div>}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -271,26 +262,24 @@ export default function AlunaDetalhes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vendas.map((venda) => (
-                    <TableRow key={venda.id}>
+                  {vendas.map(venda => <TableRow key={venda.id}>
                       <TableCell>{venda.periodo}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {venda.produtos.map((produto, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
+                          {venda.produtos.map((produto, idx) => <Badge key={idx} variant="outline" className="text-xs">
                               {produto}
-                            </Badge>
-                          ))}
+                            </Badge>)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        R$ {venda.valor_vendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {venda.valor_vendido.toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2
+                    })}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {venda.observacoes || "-"}
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
               </Table>
             </div>
@@ -311,6 +300,5 @@ export default function AlunaDetalhes() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </motion.div>
-  );
+    </motion.div>;
 }
