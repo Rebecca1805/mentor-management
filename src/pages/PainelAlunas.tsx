@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaCard } from "@/components/AlunaCard";
+import { VendasSection } from "@/components/VendasSection";
 
 export default function PainelAlunas() {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ export default function PainelAlunas() {
     principais_dificuldades: [] as string[],
   });
 
+  const [initialFormData, setInitialFormData] = useState(formData);
+
   const [novoCurso, setNovoCurso] = useState({
     id_curso: 0,
     data_compra: new Date().toISOString().split('T')[0],
@@ -60,13 +63,15 @@ export default function PainelAlunas() {
   // Carregar dados da aluna quando em modo de edição
   useEffect(() => {
     if (isEdit && aluna) {
-      setFormData({
+      const data = {
         nome: aluna.nome || "",
         email: aluna.email || "",
         status: aluna.status || "Ativo",
         data_cadastro: aluna.data_cadastro || new Date().toISOString().split('T')[0],
         principais_dificuldades: aluna.principais_dificuldades || [],
-      });
+      };
+      setFormData(data);
+      setInitialFormData(data);
     }
   }, [isEdit, aluna]);
 
@@ -75,10 +80,15 @@ export default function PainelAlunas() {
     e.preventDefault();
     try {
       if (isEdit && aluna) {
+        const dataCadastro = new Date(formData.data_cadastro);
+        const hoje = new Date();
+        const tempoBase = Math.floor((hoje.getTime() - dataCadastro.getTime()) / (1000 * 60 * 60 * 24));
+
         await updateAluna.mutateAsync({ 
           id: aluna.id, 
           previousStatus: aluna.status,
-          ...formData 
+          ...formData,
+          tempo_base: tempoBase,
         });
         toast.success("Aluno atualizado!");
         navigate("/painel-alunas?tab=buscar");
@@ -244,6 +254,19 @@ export default function PainelAlunas() {
                         required
                       />
                     </div>
+
+                    {isEdit && (
+                      <div className="space-y-2">
+                        <Label htmlFor="tempo_base">Tempo de Base (dias)</Label>
+                        <Input
+                          id="tempo_base"
+                          type="text"
+                          value={Math.floor((new Date().getTime() - new Date(formData.data_cadastro).getTime()) / (1000 * 60 * 60 * 24))}
+                          disabled
+                          className="bg-muted"
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
@@ -430,19 +453,31 @@ export default function PainelAlunas() {
                   )}
 
                   {isEdit && aluna && (
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-poppins font-bold">Observações e Planos</h3>
-                      <ObservacoesTable idAluna={aluna.id} />
-                    </div>
+                    <>
+                      <div className="space-y-6">
+                        <h3 className="text-lg font-poppins font-bold">Vendas</h3>
+                        <VendasSection idAluna={aluna.id} />
+                      </div>
+
+                      <div className="space-y-6">
+                        <h3 className="text-lg font-poppins font-bold">Observações e Planos</h3>
+                        <ObservacoesTable idAluna={aluna.id} />
+                      </div>
+                    </>
                   )}
 
                   <div className="flex gap-4 justify-end">
                     <Button type="button" variant="outline" onClick={() => navigate("/painel-alunas?tab=buscar")}>
-                      Cancelar
+                      Voltar
                     </Button>
+                    {isEdit && (
+                      <Button type="button" variant="outline" onClick={() => setFormData(initialFormData)}>
+                        Limpar
+                      </Button>
+                    )}
                     <Button type="submit">
                       <Save className="h-4 w-4 mr-2" />
-                      Salvar
+                      {isEdit ? "Atualizar Aluno" : "Salvar"}
                     </Button>
                   </div>
                 </form>

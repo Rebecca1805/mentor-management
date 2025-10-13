@@ -1,4 +1,4 @@
-import { useAllProfiles, useUpdateProfile } from "@/hooks/useProfile";
+import { useAllProfiles, useUpdateProfile, useDeleteProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, PauseCircle, UserCheck, Edit2, Save, X } from "lucide-react";
+import { CheckCircle, XCircle, PauseCircle, UserCheck, Edit2, Save, X, Trash } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -23,6 +23,7 @@ export default function PainelMaster() {
   const { user } = useAuth();
   const { data: profiles = [], isLoading } = useAllProfiles();
   const updateProfile = useUpdateProfile();
+  const deleteProfile = useDeleteProfile();
   const [editingUsers, setEditingUsers] = useState<Record<string, boolean>>({});
   const [editingState, setEditingState] = useState<EditingState>({});
 
@@ -81,6 +82,12 @@ export default function PainelMaster() {
 
     updateProfile.mutate(updateData);
     cancelEditing(userId);
+  };
+
+  const handleDeleteProfile = (userId: string) => {
+    if (window.confirm("Tem certeza que deseja excluir esta mentora? Esta ação não pode ser desfeita.")) {
+      deleteProfile.mutate(userId);
+    }
   };
 
   const getPlanLabel = (plan: string) => {
@@ -309,10 +316,10 @@ export default function PainelMaster() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleUpdateStatus(profile.user_id, 'suspensa')}
+                              onClick={() => handleUpdateStatus(profile.user_id, 'inativa')}
                             >
                               <PauseCircle className="h-4 w-4 mr-2" />
-                              Suspender
+                              Desativar
                             </Button>
                           </>
                         ) : (
@@ -336,17 +343,27 @@ export default function PainelMaster() {
                           </div>
                         )}
                       </>
-                    ) : profile.status === 'suspensa' ? (
+                    ) : (profile.status === 'suspensa' || profile.status === 'inativa') ? (
                       <>
                         {!editingUsers[profile.user_id] ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEditing(profile.user_id, profile.subscription_plan, profile.subscription_expires_at)}
-                          >
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Configurar
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEditing(profile.user_id, profile.subscription_plan, profile.subscription_expires_at)}
+                            >
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Configurar
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteProfile(profile.user_id)}
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Excluir
+                            </Button>
+                          </>
                         ) : (
                           <div className="flex gap-2">
                             <Button
