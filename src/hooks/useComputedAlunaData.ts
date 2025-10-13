@@ -12,7 +12,7 @@ export interface ComputedAlunaData {
 /**
  * Calcula dados computados de uma aluna baseados nos cursos vinculados
  */
-export const computeAlunaData = (alunoCursos: AlunoCurso[]): ComputedAlunaData => {
+export const computeAlunaData = (alunoCursos: any[]): ComputedAlunaData => {
   if (!alunoCursos || alunoCursos.length === 0) {
     return {
       data_primeira_compra: null,
