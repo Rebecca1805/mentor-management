@@ -18,11 +18,8 @@ export type Database = {
         Row: {
           created_at: string | null
           curso_atual: string | null
-          cursos_adquiridos: Json | null
           data_cadastro: string
           data_inativacao: string | null
-          data_primeira_compra: string | null
-          data_ultima_compra: string | null
           email: string
           id: number
           nome: string
@@ -37,11 +34,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           curso_atual?: string | null
-          cursos_adquiridos?: Json | null
           data_cadastro?: string
           data_inativacao?: string | null
-          data_primeira_compra?: string | null
-          data_ultima_compra?: string | null
           email: string
           id?: number
           nome: string
@@ -56,11 +50,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           curso_atual?: string | null
-          cursos_adquiridos?: Json | null
           data_cadastro?: string
           data_inativacao?: string | null
-          data_primeira_compra?: string | null
-          data_ultima_compra?: string | null
           email?: string
           id?: number
           nome?: string
@@ -77,6 +68,7 @@ export type Database = {
       aluno_cursos: {
         Row: {
           created_at: string | null
+          data_compra: string | null
           id: number
           id_aluna: number
           id_curso: number
@@ -87,6 +79,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          data_compra?: string | null
           id?: number
           id_aluna: number
           id_curso: number
@@ -97,6 +90,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          data_compra?: string | null
           id?: number
           id_aluna?: number
           id_curso?: number

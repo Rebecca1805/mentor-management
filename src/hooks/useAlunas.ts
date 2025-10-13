@@ -2,22 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccessToast, showErrorToast } from "@/lib/toastHelpers";
 
-export interface CursoAdquirido {
-  nome: string;
-  status: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
-}
-
-// ObservacaoMentora moved to useObservacoesMentora.ts
-
 export interface Aluna {
   id: number;
   nome: string;
   email: string;
   curso_atual: string | null;
-  cursos_adquiridos: CursoAdquirido[];
   data_cadastro: string;
-  data_primeira_compra: string | null;
-  data_ultima_compra: string | null;
   data_inativacao: string | null;
   tempo_base: number;
   status: string;
@@ -27,11 +17,6 @@ export interface Aluna {
   created_at: string;
   updated_at: string;
 }
-
-// Helper function to calculate cursos_concluidos
-export const getCursosConcluidos = (aluna: Aluna): number => {
-  return aluna.cursos_adquiridos.filter(c => c.status === 'concluido').length;
-};
 
 export interface PlanoAcao {
   id: number;
@@ -69,10 +54,6 @@ export const useAlunas = () => {
       if (error) throw error;
       return data.map((aluna: any) => ({
         ...aluna,
-        cursos_adquiridos: (aluna.cursos_adquiridos as any[])?.map((c: any) => ({
-          nome: c.nome || '',
-          status: c.status || 'nao_iniciado'
-        })) || [],
         principais_dificuldades: Array.isArray(aluna.principais_dificuldades)
           ? aluna.principais_dificuldades
           : [],
@@ -96,10 +77,6 @@ export const useAluna = (id?: number) => {
       if (error) throw error;
       return {
         ...data,
-        cursos_adquiridos: (data.cursos_adquiridos as any[])?.map((c: any) => ({
-          nome: c.nome || '',
-          status: c.status || 'nao_iniciado'
-        })) || [],
         principais_dificuldades: Array.isArray(data.principais_dificuldades)
           ? data.principais_dificuldades
           : [],

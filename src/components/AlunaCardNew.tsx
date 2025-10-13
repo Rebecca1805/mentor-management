@@ -4,16 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Aluna } from "@/hooks/useAlunas";
+import { AlunoCurso } from "@/hooks/useCursos";
 import { BookOpen, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { calcularTempoBase } from "@/lib/utils";
+import { computeAlunaData } from "@/hooks/useComputedAlunaData";
 
-interface AlunaCardProps {
+interface AlunaCardNewProps {
   aluna: Aluna;
+  alunoCursos: AlunoCurso[];
   index: number;
 }
 
-export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
+export const AlunaCardNew = ({ aluna, alunoCursos, index }: AlunaCardNewProps) => {
   const navigate = useNavigate();
+  
+  const computedData = computeAlunaData(alunoCursos);
   
   return (
     <motion.div
@@ -52,19 +58,20 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground font-light">Cursos</span>
-              <span className="font-poppins font-semibold text-primary">{aluna.tempo_base} dias</span>
+              <span className="text-muted-foreground font-light">Progresso</span>
+              <span className="font-poppins font-semibold text-primary">{Math.round(computedData.progresso_percentual)}%</span>
             </div>
+            <Progress value={computedData.progresso_percentual} className="h-2" />
             <p className="text-xs text-muted-foreground font-light">
-              Tempo na base
+              {computedData.cursos_concluidos} de {computedData.total_cursos} concluídos
             </p>
           </div>
 
-          {aluna.data_cadastro && (
+          {computedData.data_primeira_compra && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-light">
-                Cadastrado em {new Date(aluna.data_cadastro).toLocaleDateString('pt-BR')}
+              <span className="font-light" title="Tempo desde a primeira compra">
+                {calcularTempoBase(computedData.data_primeira_compra, aluna.status, aluna.data_inativacao, computedData.data_ultima_compra)} dias na base
               </span>
             </div>
           )}
