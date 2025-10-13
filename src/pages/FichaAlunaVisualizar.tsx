@@ -177,7 +177,7 @@ export default function FichaAlunaVisualizar() {
           </div>
           <div>
             <span className="text-muted-foreground">Tempo na Base:</span>
-            <span className="ml-2 font-semibold">{calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias</span>
+            <span className="ml-2 font-semibold">{calcularTempoBase(aluna.data_cadastro, aluna.status, aluna.data_inativacao)} dias</span>
           </div>
           <div>
             <span className="text-muted-foreground">Curso Atual:</span>

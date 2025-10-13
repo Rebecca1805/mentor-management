@@ -16,8 +16,6 @@ export interface Aluna {
   curso_atual: string | null;
   cursos_adquiridos?: CursoAdquirido[];
   data_cadastro: string;
-  data_primeira_compra: string | null;
-  data_ultima_compra: string | null;
   data_inativacao: string | null;
   tempo_base: number;
   status: string;

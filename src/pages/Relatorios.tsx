@@ -129,7 +129,7 @@ export default function Relatorios() {
       .reduce((acc, v) => acc + v.valor_vendido, 0);
 
     const tempoMedio = filteredAlunas.length > 0
-      ? filteredAlunas.reduce((acc, a) => acc + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao, a.data_ultima_compra), 0) / filteredAlunas.length
+      ? filteredAlunas.reduce((acc, a) => acc + calcularTempoBase(a.data_cadastro, a.status, a.data_inativacao), 0) / filteredAlunas.length
       : 0;
 
     const percentualAtivas = filteredAlunas.length > 0
@@ -250,7 +250,7 @@ export default function Relatorios() {
         aluna.email,
         aluna.status,
         getCursosConcluidos(aluna),
-        calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra),
+        calcularTempoBase(aluna.data_cadastro, aluna.status, aluna.data_inativacao),
         receitaAluna.toFixed(2)
       ];
     });

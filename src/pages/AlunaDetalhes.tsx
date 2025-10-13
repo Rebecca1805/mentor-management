@@ -118,7 +118,7 @@ export default function AlunaDetalhes() {
               <div>
                 <p className="text-sm text-muted-foreground">Tempo na Base</p>
                 <p className="text-lg font-medium">
-                  {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias
+                  {calcularTempoBase(aluna.data_cadastro, aluna.status, aluna.data_inativacao)} dias
                 </p>
               </div>
               <div>

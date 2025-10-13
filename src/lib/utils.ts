@@ -7,18 +7,17 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Calcula o tempo de base (em dias) de um aluno baseado no status e datas
- * @param data_primeira_compra - Data da primeira compra do aluno
+ * @param data_cadastro - Data de cadastro do aluno
  * @param status - Status atual do aluno ("Ativa" ou "Inativa")
  * @param data_inativacao - Data de inativação do aluno (se aplicável)
  * @returns Número de dias na base
  */
 export function calcularTempoBase(
-  data_primeira_compra: string | null,
+  data_cadastro: string | null,
   status: string,
-  data_inativacao: string | null,
-  data_ultima_compra?: string | null
+  data_inativacao: string | null
 ): number {
-  if (!data_primeira_compra) return 0;
+  if (!data_cadastro) return 0;
 
   const parseDateFlexible = (value: string): Date | null => {
     if (!value) return null;
@@ -35,16 +34,16 @@ export function calcularTempoBase(
     return isNaN(d.getTime()) ? null : d;
   };
 
-  const primeiraCompra = parseDateFlexible(data_primeira_compra);
-  if (!primeiraCompra) return 0;
+  const cadastro = parseDateFlexible(data_cadastro);
+  if (!cadastro) return 0;
 
   const isInativo = status === "Inativo" || status === "Inativa";
   const dataFinalRaw = isInativo && data_inativacao
     ? parseDateFlexible(data_inativacao)
-    : (data_ultima_compra ? parseDateFlexible(data_ultima_compra) : new Date());
+    : new Date();
   const dataFinal = dataFinalRaw ?? new Date();
 
-  const diffMs = dataFinal.getTime() - primeiraCompra.getTime();
+  const diffMs = dataFinal.getTime() - cadastro.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   return Math.max(0, diffDays);
 }

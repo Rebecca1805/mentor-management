@@ -76,11 +76,11 @@ export default function PainelAlunas() {
     }
   }, [aluna]);
 
-  // Calculate tempo_base automatically based on data_primeira_compra and status
+  // Calculate tempo_base automatically based on data_cadastro and status
   const tempoBaseCalculado = useMemo(() => {
-    const baseDateStr = aluna?.data_primeira_compra || null;
-    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null, aluna?.data_ultima_compra || null);
-  }, [formData.status, aluna?.data_primeira_compra, aluna?.data_inativacao, aluna?.data_ultima_compra]);
+    const baseDateStr = aluna?.data_cadastro || null;
+    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null);
+  }, [formData.status, aluna?.data_cadastro, aluna?.data_inativacao]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
@@ -109,14 +109,12 @@ export default function PainelAlunas() {
 
     try {
       if (isEdit) {
-        // Calcular datas de compra baseado em alunoCursos
-        const datas = (alunoCursos || [])
-          .map((ac: any) => ac.data_compra)
-          .filter((d: any) => !!d)
-          .map((d: string) => new Date(d));
-        const primeiraCompra = datas.length ? new Date(Math.min(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
-        const ultimaCompra = datas.length ? new Date(Math.max(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
-        const tempoBase = calcularTempoBase(primeiraCompra, formData.status, aluna?.data_inativacao ?? null, ultimaCompra);
+        // Calcular tempo_base baseado em data_cadastro (que já existe na tabela)
+        const tempoBase = calcularTempoBase(
+          aluna?.data_cadastro || null, 
+          formData.status, 
+          aluna?.data_inativacao ?? null
+        );
         
         await updateAluna.mutateAsync({ 
           id: Number(id), 
@@ -126,8 +124,6 @@ export default function PainelAlunas() {
           status: formData.status,
           principais_dificuldades: formData.principais_dificuldades,
           observacoes_mentora: formData.observacoes_mentora,
-          data_primeira_compra: primeiraCompra,
-          data_ultima_compra: ultimaCompra,
           tempo_base: tempoBase,
         });
         toast.success("Aluno atualizado com sucesso!");
@@ -135,8 +131,6 @@ export default function PainelAlunas() {
         await createAluna.mutateAsync({
           ...formData,
           tempo_base: 0,
-          data_primeira_compra: null,
-          data_ultima_compra: null,
         });
         toast.success("Aluno cadastrado com sucesso!");
       }
@@ -613,8 +607,8 @@ export default function PainelAlunas() {
                       {aluna.data_cadastro && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-light">
                           <Calendar className="h-3.5 w-3.5" />
-                          <span title="Tempo desde a primeira compra">
-                            {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
+                          <span title="Tempo desde o cadastro">
+                            {calcularTempoBase(aluna.data_cadastro, aluna.status, aluna.data_inativacao)} dias na base
                           </span>
                         </div>
                       )}
