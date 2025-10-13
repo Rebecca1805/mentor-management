@@ -3,9 +3,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Aluna } from "@/hooks/useAlunas";
+import { Aluna, getCursosConcluidos } from "@/hooks/useAlunas";
 import { BookOpen, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { calcularTempoBase } from "@/lib/utils";
 
 interface AlunaCardProps {
   aluna: Aluna;
@@ -15,6 +16,11 @@ interface AlunaCardProps {
 export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
   const navigate = useNavigate();
   
+  const cursosConcluidosCount = getCursosConcluidos(aluna);
+  const progressoPercentual = aluna.cursos_adquiridos.length > 0
+    ? (cursosConcluidosCount / aluna.cursos_adquiridos.length) * 100
+    : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -31,7 +37,7 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
             </div>
             <Badge
               className={`badge-status ${
-                aluna.status === "Ativa" || aluna.status === "Ativo"
+                aluna.status === "Ativa"
                   ? "bg-success/10 text-success ring-success/20"
                   : "bg-muted text-muted-foreground ring-border"
               }`}
@@ -52,19 +58,20 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground font-light">Cursos</span>
-              <span className="font-poppins font-semibold text-primary">{aluna.tempo_base} dias</span>
+              <span className="text-muted-foreground font-light">Progresso</span>
+              <span className="font-poppins font-semibold text-primary">{Math.round(progressoPercentual)}%</span>
             </div>
+            <Progress value={progressoPercentual} className="h-2" />
             <p className="text-xs text-muted-foreground font-light">
-              Tempo na base
+              {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} concluídos
             </p>
           </div>
 
-          {aluna.data_cadastro && (
+          {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra) > 0 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-light">
-                Cadastrado em {new Date(aluna.data_cadastro).toLocaleDateString('pt-BR')}
+              <span className="font-light" title="Tempo desde a primeira compra">
+                {calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra)} dias na base
               </span>
             </div>
           )}

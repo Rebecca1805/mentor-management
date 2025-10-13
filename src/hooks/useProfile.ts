@@ -110,26 +110,3 @@ export function useUpdateProfile() {
     },
   });
 }
-
-export function useDeleteProfile() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("user_id", userId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast.success("Mentora excluída com sucesso");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao excluir mentora: ${error.message}`);
-    },
-  });
-}

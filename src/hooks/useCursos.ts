@@ -28,12 +28,9 @@ export interface AlunoCurso {
   id_curso: number;
   id_versao: number | null;
   status_evolucao: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
-  data_compra: string;
   user_id: string;
   created_at: string;
   updated_at: string;
-  curso?: Curso;
-  versao?: CursoVersao;
 }
 
 export const useCursos = () => {
@@ -236,7 +233,7 @@ export const useCreateAlunoCurso = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (alunoCurso: Omit<AlunoCurso, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'curso' | 'versao'>) => {
+    mutationFn: async (alunoCurso: Omit<AlunoCurso, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
@@ -251,7 +248,6 @@ export const useCreateAlunoCurso = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["aluno_cursos"] });
-      queryClient.invalidateQueries({ queryKey: ["alunas"] });
       showSuccessToast("Curso adicionado ao aluno!");
     },
     onError: (error: any) => {
@@ -277,7 +273,6 @@ export const useUpdateAlunoCurso = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["aluno_cursos"] });
-      queryClient.invalidateQueries({ queryKey: ["alunas"] });
       showSuccessToast("Status do curso atualizado!");
     },
     onError: (error: any) => {
@@ -296,7 +291,6 @@ export const useDeleteAlunoCurso = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["aluno_cursos"] });
-      queryClient.invalidateQueries({ queryKey: ["alunas"] });
       showSuccessToast("Curso removido do aluno!");
     },
     onError: (error: any) => {

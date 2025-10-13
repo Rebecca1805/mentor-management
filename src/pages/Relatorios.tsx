@@ -1,326 +1,627 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { TrendingUp, Users, DollarSign, BookOpen, Target, UserX } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useAlunas } from "@/hooks/useAlunas";
-import { useVendas } from "@/hooks/useAlunas";
+import { useVendas as useVendasHook, getCursosConcluidos } from "@/hooks/useAlunas";
+import { DashboardFilters } from "@/components/DashboardFilters";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { DollarSign, TrendingUp, Clock, Download, Info } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { isWithinInterval, parseISO } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { calcularTempoBase, formatarDataBR } from "@/lib/utils";
+
+const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
 export default function Relatorios() {
   const { data: alunas, isLoading: isLoadingAlunas } = useAlunas();
-  const { data: vendas, isLoading: isLoadingVendas } = useVendas();
-
-  const { data: cursosVendidos } = useQuery({
-    queryKey: ["cursos-vendidos"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data, error } = await supabase
-        .from("aluno_cursos")
-        .select("*, cursos(nome)")
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  const { data: planosAcao } = useQuery({
-    queryKey: ["planos_acao"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data, error } = await supabase
-        .from("planos_acao")
-        .select("*")
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Processar métricas
-  const alunasAtivas = alunas?.filter(a => a.status === "Ativo" || a.status === "Ativa").length || 0;
-  const alunasInativas = alunas?.filter(a => a.status === "Inativo" || a.status === "Inativa").length || 0;
-  const receitaTotal = vendas?.reduce((sum, v) => sum + Number(v.valor_vendido || 0), 0) || 0;
+  const { data: vendas, isLoading: isLoadingVendas } = useVendasHook();
   
-  const mesAtual = new Date().getMonth() + 1;
-  const anoAtual = new Date().getFullYear();
-  const periodoAtual = `${String(mesAtual).padStart(2, '0')}/${anoAtual}`;
-  const receitaMesAtual = vendas?.filter(v => v.periodo === periodoAtual)
-    .reduce((sum, v) => sum + Number(v.valor_vendido || 0), 0) || 0;
-
-  const totalCursosVendidos = cursosVendidos?.length || 0;
-  const planosAtivos = planosAcao?.filter(p => !p.data_fim_real).length || 0;
-  const planosConcluidos = planosAcao?.filter(p => p.data_fim_real).length || 0;
-  const totalPlanos = planosAcao?.length || 0;
-  const taxaConclusao = totalPlanos > 0 ? (planosConcluidos / totalPlanos) * 100 : 0;
-
-  // Processar vendas por período
-  const vendasPorPeriodo = vendas?.reduce((acc, venda) => {
-    const periodo = venda.periodo;
-    const existing = acc.find(item => item.periodo === periodo);
-    if (existing) {
-      existing.valor += Number(venda.valor_vendido || 0);
-    } else {
-      acc.push({ periodo, valor: Number(venda.valor_vendido || 0) });
-    }
-    return acc;
-  }, [] as Array<{ periodo: string; valor: number }>)
-  ?.sort((a, b) => {
-    const [mesA, anoA] = a.periodo.split('/');
-    const [mesB, anoB] = b.periodo.split('/');
-    return new Date(`${anoA}-${mesA}`).getTime() - new Date(`${anoB}-${mesB}`).getTime();
-  }) || [];
-
-  // Top 5 cursos
-  const topCursos = cursosVendidos?.reduce((acc, cv) => {
-    const nome = cv.cursos?.nome || "Sem nome";
-    const existing = acc.find(item => item.curso === nome);
-    if (existing) {
-      existing.quantidade += 1;
-    } else {
-      acc.push({ curso: nome, quantidade: 1 });
-    }
-    return acc;
-  }, [] as Array<{ curso: string; quantidade: number }>)
-  ?.sort((a, b) => b.quantidade - a.quantidade)
-  .slice(0, 5) || [];
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [selectedAlunas, setSelectedAlunas] = useState<number[]>([]);
+  const [selectedCursos, setSelectedCursos] = useState<string[]>([]);
 
   const isLoading = isLoadingAlunas || isLoadingVendas;
 
+  const filteredAlunas = useMemo(() => {
+    if (!alunas) return [];
+
+    return alunas.filter((aluna) => {
+      // Date range filter (data_cadastro)
+      if (dateRange.from || dateRange.to) {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            if (!isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to })) {
+              return false;
+            }
+          } else if (dateRange.from) {
+            if (cadastroDate < dateRange.from) return false;
+          } else if (dateRange.to) {
+            if (cadastroDate > dateRange.to) return false;
+          }
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (selectedStatus.length > 0 && !selectedStatus.includes(aluna.status)) {
+        return false;
+      }
+
+      // Aluna filter
+      if (selectedAlunas.length > 0 && !selectedAlunas.includes(aluna.id)) {
+        return false;
+      }
+
+      // Curso filter
+      if (selectedCursos.length > 0) {
+        const alunasCursos = aluna.cursos_adquiridos.map(c => c.nome);
+        if (!selectedCursos.some(curso => alunasCursos.includes(curso))) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [alunas, dateRange, selectedStatus, selectedAlunas, selectedCursos]);
+
+  const cursosUnicos = useMemo(() => {
+    if (!alunas) return [];
+    const cursos = new Set<string>();
+    alunas.forEach(aluna => {
+      aluna.cursos_adquiridos.forEach(curso => {
+        cursos.add(curso.nome);
+      });
+    });
+    return Array.from(cursos).sort();
+  }, [alunas]);
+
+  const stats = useMemo(() => {
+    if (!filteredAlunas || !vendas) {
+      return {
+        faturamentoAtivas: 0,
+        faturamentoTotal: 0,
+        percentualAtivas: 0,
+        tempoMedio: 0,
+      };
+    }
+
+    const alunasAtivas = filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa");
+    const idsAtivas = new Set(alunasAtivas.map(a => a.id));
+    const idsTotal = new Set(filteredAlunas.map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas;
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendas.filter(venda => {
+        try {
+          // Parse periodo (formato YYYY-MM ou similar)
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const faturamentoAtivas = vendasFiltradas
+      .filter(v => idsAtivas.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const faturamentoTotal = vendasFiltradas
+      .filter(v => idsTotal.has(v.id_aluna))
+      .reduce((acc, v) => acc + v.valor_vendido, 0);
+
+    const tempoMedio = filteredAlunas.length > 0
+      ? filteredAlunas.reduce((acc, a) => acc + calcularTempoBase(a.data_primeira_compra, a.status, a.data_inativacao, a.data_ultima_compra), 0) / filteredAlunas.length
+      : 0;
+
+    const percentualAtivas = filteredAlunas.length > 0
+      ? (alunasAtivas.length / filteredAlunas.length) * 100
+      : 0;
+
+    return {
+      faturamentoAtivas,
+      faturamentoTotal,
+      percentualAtivas,
+      tempoMedio: Math.round(tempoMedio),
+    };
+  }, [filteredAlunas, vendas, dateRange]);
+
+  const statusData = useMemo(() => {
+    if (!filteredAlunas) return [];
+    const ativas = filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa").length;
+    const inativas = filteredAlunas.length - ativas;
+    return [
+      { name: "Ativos", value: ativas },
+      { name: "Inativos", value: inativas },
+    ];
+  }, [filteredAlunas]);
+
+  const faturamentoPorPeriodo = useMemo(() => {
+    if (!vendas || !filteredAlunas) return [];
+
+    const idsAlunas = new Set(filteredAlunas.map(a => a.id));
+    const idsAtivas = new Set(filteredAlunas.filter(a => a.status === "Ativo" || a.status === "Ativa").map(a => a.id));
+
+    // Filter vendas by date range
+    let vendasFiltradas = vendas.filter(v => idsAlunas.has(v.id_aluna));
+    
+    if (dateRange.from || dateRange.to) {
+      vendasFiltradas = vendasFiltradas.filter(venda => {
+        try {
+          const periodoDate = parseISO(venda.periodo + "-01");
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(periodoDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return periodoDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return periodoDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+
+    const porPeriodo = vendasFiltradas.reduce((acc, venda) => {
+      const periodo = venda.periodo;
+      if (!acc[periodo]) {
+        acc[periodo] = { periodo, ativas: 0, todas: 0 };
+      }
+      const valor = venda.valor_vendido;
+      acc[periodo].todas += valor;
+      if (idsAtivas.has(venda.id_aluna)) {
+        acc[periodo].ativas += valor;
+      }
+      return acc;
+    }, {} as Record<string, { periodo: string; ativas: number; todas: number }>);
+
+    return Object.values(porPeriodo)
+      .sort((a, b) => a.periodo.localeCompare(b.periodo))
+      .slice(-12); // últimos 12 períodos
+  }, [vendas, filteredAlunas, dateRange]);
+
+  const evolucaoData = useMemo(() => {
+    if (!alunas) return [];
+    
+    // Group by data_cadastro
+    let alunasParaEvolucao = alunas;
+    
+    // Apply date range filter
+    if (dateRange.from || dateRange.to) {
+      alunasParaEvolucao = alunas.filter(aluna => {
+        try {
+          const cadastroDate = parseISO(aluna.data_cadastro);
+          if (dateRange.from && dateRange.to) {
+            return isWithinInterval(cadastroDate, { start: dateRange.from, end: dateRange.to });
+          } else if (dateRange.from) {
+            return cadastroDate >= dateRange.from;
+          } else if (dateRange.to) {
+            return cadastroDate <= dateRange.to;
+          }
+        } catch (e) {
+          return true;
+        }
+        return true;
+      });
+    }
+    
+    const porMes = alunasParaEvolucao.reduce((acc, aluna) => {
+      const mes = aluna.data_cadastro.substring(0, 7);
+      acc[mes] = (acc[mes] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Cumulative count
+    const sorted = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
+    let cumulative = 0;
+    
+    return sorted.map(([mes, quantidade]) => {
+      cumulative += quantidade;
+      return { mes: formatarDataBR(mes + "-01", 'mes-ano'), quantidade: cumulative };
+    });
+  }, [alunas, dateRange]);
+
+  const exportarCSV = () => {
+    const headers = ["Nome", "Email", "Status", "Cursos Concluídos", "Tempo Base", "Receita Total"];
+    const rows = filteredAlunas.map(aluna => {
+      const vendasAluna = vendas?.filter(v => v.id_aluna === aluna.id) || [];
+      const receitaAluna = vendasAluna.reduce((sum, v) => sum + v.valor_vendido, 0);
+      return [
+        aluna.nome,
+        aluna.email,
+        aluna.status,
+        getCursosConcluidos(aluna),
+        calcularTempoBase(aluna.data_primeira_compra, aluna.status, aluna.data_inativacao, aluna.data_ultima_compra),
+        receitaAluna.toFixed(2)
+      ];
+    });
+
+    const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio-alunas-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
-            ))}
-          </div>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-3 pt-6">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="card-premium">
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-[300px] w-full" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
   }
 
+  const handleResetFilters = () => {
+    setDateRange({ from: undefined, to: undefined } as DateRange);
+    setSelectedStatus([]);
+    setSelectedAlunas([]);
+    setSelectedCursos([]);
+  };
+
   return (
-    <div className="p-8 space-y-6">
-      <h1 className="text-3xl font-bold">Relatórios</h1>
-
-      {/* Métricas principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Alunas Ativas</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alunasAtivas}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total de alunas cadastradas: {alunas?.length || 0}
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-between items-start"
+        >
+          <div className="space-y-2">
+            <h1 className="text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-poppins" style={{ fontWeight: 700 }}>
+              Relatórios e Análises
+            </h1>
+            <p className="text-muted-foreground font-light">
+              Visão completa do faturamento e evolução da base de alunos
             </p>
-          </CardContent>
-        </Card>
+          </div>
+          <Button onClick={exportarCSV} className="btn-gradient">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Alunas Inativas</CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alunasInativas}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {alunasInativas > 0 ? `${((alunasInativas / (alunas?.length || 1)) * 100).toFixed(1)}% do total` : "Nenhuma aluna inativa"}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Filters */}
+        <DashboardFilters
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          selectedAlunas={selectedAlunas}
+          onAlunasChange={setSelectedAlunas}
+          selectedCursos={selectedCursos}
+          onCursosChange={setSelectedCursos}
+          availableAlunas={alunas?.map(a => ({ id: a.id, nome: a.nome })) || []}
+          availableCursos={cursosUnicos}
+          onReset={handleResetFilters}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {receitaTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Todas as vendas registradas
-            </p>
-          </CardContent>
-        </Card>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Faturamento Alunas Ativas - Destaque */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="md:col-span-2 lg:col-span-1"
+          >
+            <Card className="card-premium border-primary/30 shadow-lg hover:shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Ativos
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento de alunos ativos"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-light">Faturamento total de alunos ativos no período selecionado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-primary" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-primary font-poppins font-semibold" aria-label={`Faturamento de alunos ativos: R$ ${stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                  R$ {stats.faturamentoAtivas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <Badge variant="secondary" className="mt-2 font-light text-xs">
+                  Destaque Principal
+                </Badge>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Receita do Mês Atual</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {receitaMesAtual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {periodoAtual}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Faturamento Total - Estilo suave */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.15, duration: 0.2 }}
+          >
+            <Card className="card-premium opacity-75 hover:opacity-100">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground font-light">
+                    Faturamento Total
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        aria-label="Informações sobre faturamento total"
+                      >
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-light">Inclui ativos e inativos no período selecionado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <DollarSign className="h-5 w-5 text-secondary" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl text-secondary/80 font-poppins font-light" aria-label={`Faturamento total: R$ ${stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                  R$ {stats.faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  Ativos + Inativos
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Cursos Vendidos</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCursosVendidos}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total de matrículas
-            </p>
-          </CardContent>
-        </Card>
+          {/* % Alunos Ativos */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  % Alunos Ativos
+                </CardTitle>
+                <TrendingUp className="h-5 w-5 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-success font-poppins" style={{ fontWeight: 700 }}>
+                  {Math.round(stats.percentualAtivas)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  vs Inativos
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Planos de Ação Ativos</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{planosAtivos}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {planosConcluidos} concluídos de {totalPlanos} total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Tempo Médio */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="card-premium">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm text-muted-foreground font-light">
+                  Tempo Médio
+                </CardTitle>
+                <Clock className="h-5 w-5 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl text-accent font-poppins" style={{ fontWeight: 700 }}>
+                  {stats.tempoMedio}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  dias na base
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Vendas por Período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {vendasPorPeriodo.length > 0 ? (
-              <ChartContainer
-                config={{
-                  valor: {
-                    label: "Valor Vendido",
-                    color: "hsl(var(--chart-1))",
-                  },
-                }}
-              >
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Evolução de Alunas - Linha */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-poppins font-light text-lg">
+                    Evolução de Alunos na Base
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={vendasPorPeriodo}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <LineChart data={evolucaoData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
-                      dataKey="periodo" 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      dataKey="mes" 
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
                     />
                     <YAxis 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--foreground))' }}
-                      tickFormatter={(value) => `R$ ${value}`}
+                      stroke="hsl(var(--muted-foreground))"
+                      style={{ fontSize: '12px', fontWeight: 300 }}
                     />
-                    <ChartTooltip 
-                      content={<ChartTooltipContent />}
-                      formatter={(value) => [`R$ ${Number(value).toFixed(2)}`, "Valor Vendido"]}
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
                     />
-                    <Bar dataKey="valor" fill="var(--color-valor)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="quantidade" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      name="Total Acumulado"
+                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                  <p>Nenhuma venda registrada ainda</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Cursos Mais Vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topCursos.length > 0 ? (
-              <div className="space-y-4">
-                {topCursos.map((curso, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                        {index + 1}
-                      </div>
-                      <span className="font-medium">{curso.curso}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Progress 
-                        value={(curso.quantidade / (topCursos[0]?.quantidade || 1)) * 100} 
-                        className="w-24"
-                      />
-                      <span className="text-sm font-semibold w-8 text-right">{curso.quantidade}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                  <p>Nenhum curso vendido ainda</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Distribuição por Status - Pizza */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="card-premium">
+              <CardHeader>
+                <CardTitle className="font-poppins font-light text-lg">Distribuição por Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 300,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Faturamento por Período - Barra */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="font-poppins font-light text-lg">Faturamento por Período</CardTitle>
+              <p className="text-xs text-muted-foreground font-light">Últimos 12 períodos</p>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={faturamentoPorPeriodo}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="periodo" 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px', fontWeight: 300 }}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px', fontWeight: 300 }}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 300,
+                    }}
+                    formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 300 }} />
+                  <Bar 
+                    dataKey="ativas" 
+                    fill="hsl(var(--primary))" 
+                    name="Faturamento Ativos"
+                    radius={[8, 8, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="todas" 
+                    fill="hsl(var(--secondary))" 
+                    name="Faturamento Total"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-
-      {/* Status de Planos de Ação */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status dos Planos de Ação</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {totalPlanos > 0 ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{totalPlanos}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Total de Planos</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-3xl font-bold text-green-600">{planosConcluidos}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Concluídos</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-3xl font-bold text-orange-600">{planosAtivos}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Em Andamento</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Taxa de Conclusão</span>
-                  <span className="font-semibold">{taxaConclusao.toFixed(1)}%</span>
-                </div>
-                <Progress value={taxaConclusao} className="h-3" />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <div className="text-center">
-                <Target className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                <p>Nenhum plano de ação criado ainda</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    </TooltipProvider>
   );
 }
