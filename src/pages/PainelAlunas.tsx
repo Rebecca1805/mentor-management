@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useAluna, useCreateAluna, useUpdateAluna, useAlunas, CursoAdquirido, getCursosConcluidos } from "@/hooks/useAlunas";
+import { useAluna, useCreateAluna, useUpdateAluna, useDeleteAluna, useAlunas, CursoAdquirido, getCursosConcluidos } from "@/hooks/useAlunas";
 import { useCursos, useAlunoCursos, useCreateAlunoCurso, useUpdateAlunoCurso, useDeleteAlunoCurso, getVersaoVigenteParaData, useCursoVersoes } from "@/hooks/useCursos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,14 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw, Plus, Edit } from "lucide-react";
+import { Search, BookOpen, Calendar, Eye, Save, X, RotateCcw, Plus, Edit, Trash2 } from "lucide-react";
 import { VendasSection } from "@/components/VendasSection";
 import { toast } from "sonner";
 import { DifficultyTags } from "@/components/DifficultyTags";
 import { ObservacoesTable } from "@/components/ObservacoesTable";
 import { AlunaCardSkeleton } from "@/components/LoadingSkeletons";
 import { calcularTempoBase, formatarDataBR } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 
 const CURSO_STATUS_LABELS = {
@@ -41,6 +42,7 @@ export default function PainelAlunas() {
   const { data: alunoCursos = [] } = useAlunoCursos(id ? Number(id) : 0);
   const createAluna = useCreateAluna();
   const updateAluna = useUpdateAluna();
+  const deleteAluna = useDeleteAluna();
   const createAlunoCurso = useCreateAlunoCurso();
   const updateAlunoCurso = useUpdateAlunoCurso();
   const deleteAlunoCurso = useDeleteAlunoCurso();
@@ -50,6 +52,7 @@ export default function PainelAlunas() {
   const [cursoFilter, setCursoFilter] = useState<string[]>([]);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [deletingAlunaId, setDeletingAlunaId] = useState<number | null>(null);
   
   const isEdit = !!id;
 
@@ -187,6 +190,18 @@ export default function PainelAlunas() {
   const handleCancelEdit = () => {
     navigate("/painel-alunas?tab=cadastrar");
     resetForm();
+  };
+
+  const handleDeleteAluna = async () => {
+    if (deletingAlunaId) {
+      try {
+        await deleteAluna.mutateAsync(deletingAlunaId);
+        setDeletingAlunaId(null);
+        navigate("/painel-alunas?tab=buscar");
+      } catch (error) {
+        // Erro já tratado pelo hook
+      }
+    }
   };
 
   const breadcrumbItems = [
@@ -478,6 +493,16 @@ export default function PainelAlunas() {
                     <RotateCcw className="mr-2 h-4 w-4" />
                     Limpar
                   </Button>
+                  {isEdit && (
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={() => setDeletingAlunaId(Number(id))}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir Aluno
+                    </Button>
+                  )}
                   <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
                     Voltar
                   </Button>
@@ -636,6 +661,28 @@ export default function PainelAlunas() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Alert Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!deletingAlunaId} onOpenChange={() => setDeletingAlunaId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este aluno? Todas as informações relacionadas (vendas, observações, planos de ação) serão removidas permanentemente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAluna}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
