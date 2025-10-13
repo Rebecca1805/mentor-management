@@ -84,12 +84,8 @@ export default function PainelMaster() {
   };
 
   const getPlanLabel = (plan: string) => {
-    const labels: Record<string, string> = {
-      'estrategico': 'Estratégico',
-      'condutor': 'Condutor',
-      'visionario': 'Visionário'
-    };
-    return labels[plan] || plan;
+    if (plan === 'estrategico') return 'Estratégico';
+    return 'Estratégico';
   };
 
   const getStatusBadge = (status: string) => {
@@ -125,6 +121,7 @@ export default function PainelMaster() {
   const pendentes = profiles.filter(p => p.status === 'pendente');
   const ativas = profiles.filter(p => p.status === 'ativa');
   const suspensas = profiles.filter(p => p.status === 'suspensa');
+  const inativas = profiles.filter(p => p.status === 'inativa');
 
   return (
     <motion.div
@@ -142,7 +139,7 @@ export default function PainelMaster() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="card-premium border-yellow-500/30">
           <CardHeader>
             <CardTitle className="text-sm font-light text-muted-foreground flex items-center gap-2">
@@ -176,6 +173,18 @@ export default function PainelMaster() {
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-poppins font-semibold text-destructive">{suspensas.length}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-premium border-muted/30">
+          <CardHeader>
+            <CardTitle className="text-sm font-light text-muted-foreground flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-muted-foreground" />
+              Inativas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-4xl font-poppins font-semibold text-muted-foreground">{inativas.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -230,9 +239,7 @@ export default function PainelMaster() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="estrategico">Estratégico ✅</SelectItem>
-                                <SelectItem value="condutor" disabled>Condutor 🔒</SelectItem>
-                                <SelectItem value="visionario" disabled>Visionário 🔒</SelectItem>
+                                <SelectItem value="estrategico">Estratégico</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -314,6 +321,14 @@ export default function PainelMaster() {
                               <PauseCircle className="h-4 w-4 mr-2" />
                               Suspender
                             </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(profile.user_id, 'inativa')}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Desativar
+                            </Button>
                           </>
                         ) : (
                           <div className="flex gap-2">
@@ -337,6 +352,38 @@ export default function PainelMaster() {
                         )}
                       </>
                     ) : profile.status === 'suspensa' ? (
+                      <>
+                        {!editingUsers[profile.user_id] ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEditing(profile.user_id, profile.subscription_plan, profile.subscription_expires_at)}
+                          >
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Configurar
+                          </Button>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(profile.user_id, 'ativa')}
+                              className="btn-gradient"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Reativar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelEditing(profile.user_id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : profile.status === 'inativa' ? (
                       <>
                         {!editingUsers[profile.user_id] ? (
                           <Button
