@@ -126,7 +126,6 @@ export default function AlunaDetalhes() {
       return acc;
     }, [] as { periodo: string; valor: number }[])
     .sort((a, b) => {
-      // Ordenar por período no formato MM/AA (crescente)
       const [mesA, anoA] = a.periodo.split('/');
       const [mesB, anoB] = b.periodo.split('/');
       const dataA = parseInt(`20${anoA}${mesA}`);
