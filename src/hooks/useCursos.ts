@@ -28,6 +28,7 @@ export interface AlunoCurso {
   id_curso: number;
   id_versao: number | null;
   status_evolucao: 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido';
+  data_compra: string | null;
   user_id: string;
   created_at: string;
   updated_at: string;

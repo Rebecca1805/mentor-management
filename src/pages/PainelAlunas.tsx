@@ -115,16 +115,33 @@ export default function PainelAlunas() {
       return;
     }
 
-    // Validate: cursos_concluidos não pode exceder total de cursos com status concluído
-    const cursosConcluidosCount = formData.cursos_adquiridos.filter(c => c.status === 'concluido').length;
-    
     try {
       if (isEdit) {
+        // Sincroniza cursos com a tabela aluno_cursos
+        const cursosFromAlunoCursos = (alunoCursos || []).map((ac: any) => ({
+          nome: ac.cursos?.nome || '',
+          status: ac.status_evolucao as any,
+        }));
+        // Datas de compra por curso -> primeiro/último
+        const datas = (alunoCursos || [])
+          .map((ac: any) => ac.data_compra)
+          .filter((d: any) => !!d)
+          .map((d: string) => new Date(d));
+        const primeiraCompra = datas.length ? new Date(Math.min(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
+        const ultimaCompra = datas.length ? new Date(Math.max(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
+        const tempoBase = calcularTempoBase(primeiraCompra, formData.status, aluna?.data_inativacao ?? null, ultimaCompra);
         await updateAluna.mutateAsync({ 
           id: Number(id), 
           previousStatus: aluna?.status,
-          ...formData,
-          tempo_base: tempoBaseCalculado
+          nome: formData.nome,
+          email: formData.email,
+          status: formData.status,
+          principais_dificuldades: formData.principais_dificuldades,
+          observacoes_mentora: formData.observacoes_mentora,
+          cursos_adquiridos: cursosFromAlunoCursos,
+          data_primeira_compra: primeiraCompra,
+          data_ultima_compra: ultimaCompra,
+          tempo_base: tempoBase,
         });
         toast.success("Aluno atualizado com sucesso!");
       } else {
@@ -333,131 +350,209 @@ export default function PainelAlunas() {
                     <p className="text-sm text-muted-foreground font-light mb-4">
                       Selecione os cursos que o aluno adquiriu
                     </p>
-                    <Select
-                      value=""
-                      onValueChange={(value) => {
-                        const curso = cursos.find(c => c.nome === value);
-                        if (curso && !formData.cursos_adquiridos.find(c => c.nome === value)) {
-                          toggleCursoStatus(value, 'nao_iniciado');
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Selecione um curso para adicionar" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {cursos
-                          .filter(curso => !formData.cursos_adquiridos.find(c => c.nome === curso.nome))
-                          .map((curso) => (
-                            <SelectItem key={curso.id} value={curso.nome}>
-                              {curso.nome}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                      <Select
+                        value=""
+                        onValueChange={async (value) => {
+                          const curso = cursos.find(c => c.nome === value);
+                          if (!curso) return;
+                          if (isEdit) {
+                            if (alunoCursos.some((ac: any) => ac.id_curso === curso.id)) return;
+                            const today = new Date();
+                            const yyyy = today.getFullYear();
+                            const mm = String(today.getMonth() + 1).padStart(2, '0');
+                            const dd = String(today.getDate()).padStart(2, '0');
+                            await createAlunoCurso.mutateAsync({
+                              id_aluna: Number(id),
+                              id_curso: curso.id,
+                              id_versao: null,
+                              status_evolucao: 'nao_iniciado',
+                              data_compra: `${yyyy}-${mm}-${dd}`,
+                            } as any);
+                          } else {
+                            if (!formData.cursos_adquiridos.find(c => c.nome === value)) {
+                              toggleCursoStatus(value, 'nao_iniciado');
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Selecione um curso para adicionar" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {isEdit
+                            ? cursos
+                                .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
+                                .map((curso) => (
+                                  <SelectItem key={curso.id} value={curso.nome}>
+                                    {curso.nome}
+                                  </SelectItem>
+                                ))
+                            : cursos
+                                .filter(curso => !formData.cursos_adquiridos.find(c => c.nome === curso.nome))
+                                .map((curso) => (
+                                  <SelectItem key={curso.id} value={curso.nome}>
+                                    {curso.nome}
+                                  </SelectItem>
+                                ))
+                          }
+                        </SelectContent>
+                      </Select>
                   </div>
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Cursos Adquiridos e Evolução</h3>
                     
-                    {formData.cursos_adquiridos.length === 0 ? (
-                      <div className="p-8 text-center border-2 border-dashed rounded-2xl">
-                        <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground font-light">
-                          Nenhum curso adicionado ainda
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {formData.cursos_adquiridos.map((cursoAdquirido) => {
-                          const curso = cursos.find(c => c.nome === cursoAdquirido.nome);
-                          return (
+                    {isEdit ? (
+                      alunoCursos.length === 0 ? (
+                        <div className="p-8 text-center border-2 border-dashed rounded-2xl">
+                          <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                          <p className="text-sm text-muted-foreground font-light">
+                            Nenhum curso adicionado ainda
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {alunoCursos.map((ac: any) => (
                             <div
-                              key={cursoAdquirido.nome}
+                              key={ac.id}
                               className="p-6 rounded-2xl border-2 bg-muted/30 border-primary/30"
                             >
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 space-y-3">
                                   <div>
-                                    <h4 className="font-light text-lg">{cursoAdquirido.nome}</h4>
-                                    {curso?.descricao && (
-                                      <p className="text-xs text-muted-foreground mt-1">{curso.descricao}</p>
+                                    <h4 className="font-light text-lg">{ac.cursos?.nome || 'Curso'}</h4>
+                                    {ac.cursos?.descricao && (
+                                      <p className="text-xs text-muted-foreground mt-1">{ac.cursos.descricao}</p>
                                     )}
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-light">Status de Evolução</Label>
-                                    <Select
-                                      value={cursoAdquirido.status}
-                                      onValueChange={(value) => toggleCursoStatus(cursoAdquirido.nome, value as CursoAdquirido['status'])}
-                                    >
-                                      <SelectTrigger className="rounded-xl">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-background z-50">
-                                        <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
-                                        <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
-                                        <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
-                                        <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <Label className="text-xs font-light">Status de Evolução</Label>
+                                      <Select
+                                        value={ac.status_evolucao}
+                                        onValueChange={(value) => updateAlunoCurso.mutateAsync({ id: ac.id, status_evolucao: value as any })}
+                                      >
+                                        <SelectTrigger className="rounded-xl">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background z-50">
+                                          <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
+                                          <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
+                                          <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
+                                          <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label className="text-xs font-light">Data de Contratação</Label>
+                                      <Input
+                                        type="date"
+                                        value={ac.data_compra ? ac.data_compra.substring(0,10) : ''}
+                                        onChange={(e) => updateAlunoCurso.mutateAsync({ id: ac.id, data_compra: e.target.value })}
+                                        className="rounded-xl font-light"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeCurso(cursoAdquirido.nome)}
+                                  onClick={() => deleteAlunoCurso.mutateAsync(ac.id)}
                                   className="text-destructive shrink-0"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
-                          );
-                        })}
-
-                        <div className="p-4 bg-muted/50 rounded-xl">
-                          <p className="text-sm font-light">
-                            <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
-                            {formData.cursos_adquiridos.length}
-                          </p>
-                          <p className="text-sm font-light mt-1">
-                            <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
-                            {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
-                          </p>
-                        </div>
+                          ))}
+                          <div className="p-4 bg-muted/50 rounded-xl">
+                            <p className="text-sm font-light">
+                              <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
+                              {alunoCursos.length}
+                            </p>
+                            <p className="text-sm font-light mt-1">
+                              <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
+                              {alunoCursos.filter((ac: any) => ac.status_evolucao === 'concluido').length}
+                            </p>
+                          </div>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        {formData.cursos_adquiridos.length === 0 ? (
+                          <div className="p-8 text-center border-2 border-dashed rounded-2xl">
+                            <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                            <p className="text-sm text-muted-foreground font-light">
+                              Nenhum curso adicionado ainda
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            {formData.cursos_adquiridos.map((cursoAdquirido) => {
+                              const curso = cursos.find(c => c.nome === cursoAdquirido.nome);
+                              return (
+                                <div
+                                  key={cursoAdquirido.nome}
+                                  className="p-6 rounded-2xl border-2 bg-muted/30 border-primary/30"
+                                >
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 space-y-3">
+                                      <div>
+                                        <h4 className="font-light text-lg">{cursoAdquirido.nome}</h4>
+                                        {curso?.descricao && (
+                                          <p className="text-xs text-muted-foreground mt-1">{curso.descricao}</p>
+                                        )}
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-xs font-light">Status de Evolução</Label>
+                                        <Select
+                                          value={cursoAdquirido.status}
+                                          onValueChange={(value) => toggleCursoStatus(cursoAdquirido.nome, value as any)}
+                                        >
+                                          <SelectTrigger className="rounded-xl">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-background z-50">
+                                            <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
+                                            <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
+                                            <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
+                                            <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeCurso(cursoAdquirido.nome)}
+                                      className="text-destructive shrink-0"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="p-4 bg-muted/50 rounded-xl">
+                              <p className="text-sm font-light">
+                                <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
+                                {formData.cursos_adquiridos.length}
+                              </p>
+                              <p className="text-sm font-light mt-1">
+                                <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
+                                {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* Datas e Tempo */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-poppins" style={{ fontWeight: 700 }}>Histórico de Compras</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="data_primeira_compra" className="font-light">Primeira Compra</Label>
-                      <Input
-                        id="data_primeira_compra"
-                        type="date"
-                        value={formData.data_primeira_compra}
-                        onChange={(e) => setFormData({ ...formData, data_primeira_compra: e.target.value })}
-                        className="rounded-xl font-light"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="data_ultima_compra" className="font-light">Última Compra</Label>
-                      <Input
-                        id="data_ultima_compra"
-                        type="date"
-                        value={formData.data_ultima_compra}
-                        onChange={(e) => setFormData({ ...formData, data_ultima_compra: e.target.value })}
-                        className="rounded-xl font-light"
-                      />
-                    </div>
-                  </div>
-                </div>
+                {/* Datas e Tempo - seção removida conforme solicitação do cliente */}
 
                 {/* Dificuldades */}
                 <div className="space-y-6">
