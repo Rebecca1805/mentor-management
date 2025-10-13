@@ -59,13 +59,9 @@ export default function PainelAlunas() {
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
-    cursos_adquiridos: [] as CursoAdquirido[],
     status: "Ativo",
     principais_dificuldades: [] as string[],
     observacoes_mentora: "",
-    data_primeira_compra: "",
-    data_ultima_compra: "",
-    tempo_base: 0,
   });
 
   useEffect(() => {
@@ -73,22 +69,18 @@ export default function PainelAlunas() {
       setFormData({
         nome: aluna.nome,
         email: aluna.email,
-        cursos_adquiridos: aluna.cursos_adquiridos || [],
         status: aluna.status,
         principais_dificuldades: aluna.principais_dificuldades || [],
         observacoes_mentora: aluna.observacoes_mentora || "",
-        data_primeira_compra: aluna.data_primeira_compra || "",
-        data_ultima_compra: aluna.data_ultima_compra || "",
-        tempo_base: aluna.tempo_base,
       });
     }
   }, [aluna]);
 
   // Calculate tempo_base automatically based on data_primeira_compra and status
   const tempoBaseCalculado = useMemo(() => {
-    const baseDateStr = formData.data_primeira_compra || aluna?.data_primeira_compra || null;
-    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null, formData.data_ultima_compra || aluna?.data_ultima_compra || null);
-  }, [formData.data_primeira_compra, formData.status, aluna?.data_primeira_compra, aluna?.data_inativacao]);
+    const baseDateStr = aluna?.data_primeira_compra || null;
+    return calcularTempoBase(baseDateStr, formData.status, aluna?.data_inativacao ?? null, aluna?.data_ultima_compra || null);
+  }, [formData.status, aluna?.data_primeira_compra, aluna?.data_inativacao, aluna?.data_ultima_compra]);
 
   const filteredAlunas = useMemo(() => {
     if (!alunas) return [];
@@ -98,7 +90,7 @@ export default function PainelAlunas() {
                           aluna.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter.length === 0 || statusFilter.includes(aluna.status);
       const matchesCurso = cursoFilter.length === 0 || 
-                          aluna.cursos_adquiridos.some(c => cursoFilter.includes(c.nome));
+                          (aluna.cursos_adquiridos || []).some(c => cursoFilter.includes(c.nome));
       
       const matchesDataInicio = !dataInicio || (aluna.data_cadastro && aluna.data_cadastro >= dataInicio);
       const matchesDataFim = !dataFim || (aluna.data_cadastro && aluna.data_cadastro <= dataFim);
@@ -117,12 +109,7 @@ export default function PainelAlunas() {
 
     try {
       if (isEdit) {
-        // Sincroniza cursos com a tabela aluno_cursos
-        const cursosFromAlunoCursos = (alunoCursos || []).map((ac: any) => ({
-          nome: ac.cursos?.nome || '',
-          status: ac.status_evolucao as any,
-        }));
-        // Datas de compra por curso -> primeiro/último
+        // Calcular datas de compra baseado em alunoCursos
         const datas = (alunoCursos || [])
           .map((ac: any) => ac.data_compra)
           .filter((d: any) => !!d)
@@ -130,6 +117,7 @@ export default function PainelAlunas() {
         const primeiraCompra = datas.length ? new Date(Math.min(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
         const ultimaCompra = datas.length ? new Date(Math.max(...datas.map((d) => d.getTime()))).toISOString().substring(0,10) : null;
         const tempoBase = calcularTempoBase(primeiraCompra, formData.status, aluna?.data_inativacao ?? null, ultimaCompra);
+        
         await updateAluna.mutateAsync({ 
           id: Number(id), 
           previousStatus: aluna?.status,
@@ -138,7 +126,6 @@ export default function PainelAlunas() {
           status: formData.status,
           principais_dificuldades: formData.principais_dificuldades,
           observacoes_mentora: formData.observacoes_mentora,
-          cursos_adquiridos: cursosFromAlunoCursos,
           data_primeira_compra: primeiraCompra,
           data_ultima_compra: ultimaCompra,
           tempo_base: tempoBase,
@@ -147,7 +134,9 @@ export default function PainelAlunas() {
       } else {
         await createAluna.mutateAsync({
           ...formData,
-          tempo_base: tempoBaseCalculado
+          tempo_base: 0,
+          data_primeira_compra: null,
+          data_ultima_compra: null,
         });
         toast.success("Aluno cadastrado com sucesso!");
       }
@@ -166,37 +155,9 @@ export default function PainelAlunas() {
     setFormData({
       nome: "",
       email: "",
-      cursos_adquiridos: [],
       status: "Ativo",
       principais_dificuldades: [],
       observacoes_mentora: "",
-      data_primeira_compra: "",
-      data_ultima_compra: "",
-      tempo_base: 0,
-    });
-  };
-
-  const toggleCursoStatus = (cursoNome: string, status: CursoAdquirido['status']) => {
-    const cursoIndex = formData.cursos_adquiridos.findIndex(c => c.nome === cursoNome);
-    
-    if (cursoIndex >= 0) {
-      // Update existing course
-      const newCursos = [...formData.cursos_adquiridos];
-      newCursos[cursoIndex] = { ...newCursos[cursoIndex], status };
-      setFormData({ ...formData, cursos_adquiridos: newCursos });
-    } else {
-      // Add new course
-      setFormData({
-        ...formData,
-        cursos_adquiridos: [...formData.cursos_adquiridos, { nome: cursoNome, status }]
-      });
-    }
-  };
-
-  const removeCurso = (cursoNome: string) => {
-    setFormData({
-      ...formData,
-      cursos_adquiridos: formData.cursos_adquiridos.filter(c => c.nome !== cursoNome)
     });
   };
 
@@ -350,12 +311,12 @@ export default function PainelAlunas() {
                     <p className="text-sm text-muted-foreground font-light mb-4">
                       Selecione os cursos que o aluno adquiriu
                     </p>
-                      <Select
-                        value=""
-                        onValueChange={async (value) => {
-                          const curso = cursos.find(c => c.nome === value);
-                          if (!curso) return;
-                          if (isEdit) {
+                      {isEdit ? (
+                        <Select
+                          value=""
+                          onValueChange={async (value) => {
+                            const curso = cursos.find(c => c.nome === value);
+                            if (!curso) return;
                             if (alunoCursos.some((ac: any) => ac.id_curso === curso.id)) return;
                             const today = new Date();
                             const yyyy = today.getFullYear();
@@ -368,35 +329,27 @@ export default function PainelAlunas() {
                               status_evolucao: 'nao_iniciado',
                               data_compra: `${yyyy}-${mm}-${dd}`,
                             } as any);
-                          } else {
-                            if (!formData.cursos_adquiridos.find(c => c.nome === value)) {
-                              toggleCursoStatus(value, 'nao_iniciado');
+                          }}
+                        >
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Selecione um curso para adicionar" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            {cursos
+                              .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
+                              .map((curso) => (
+                                <SelectItem key={curso.id} value={curso.nome}>
+                                  {curso.nome}
+                                </SelectItem>
+                              ))
                             }
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue placeholder="Selecione um curso para adicionar" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {isEdit
-                            ? cursos
-                                .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
-                                .map((curso) => (
-                                  <SelectItem key={curso.id} value={curso.nome}>
-                                    {curso.nome}
-                                  </SelectItem>
-                                ))
-                            : cursos
-                                .filter(curso => !formData.cursos_adquiridos.find(c => c.nome === curso.nome))
-                                .map((curso) => (
-                                  <SelectItem key={curso.id} value={curso.nome}>
-                                    {curso.nome}
-                                  </SelectItem>
-                                ))
-                          }
-                        </SelectContent>
-                      </Select>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="text-sm text-muted-foreground font-light p-4 bg-muted/50 rounded-xl">
+                          Os cursos podem ser adicionados após cadastrar o aluno
+                        </p>
+                      )}
                   </div>
 
                   <div className="space-y-4">
@@ -479,75 +432,12 @@ export default function PainelAlunas() {
                         </>
                       )
                     ) : (
-                      <>
-                        {formData.cursos_adquiridos.length === 0 ? (
-                          <div className="p-8 text-center border-2 border-dashed rounded-2xl">
-                            <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                            <p className="text-sm text-muted-foreground font-light">
-                              Nenhum curso adicionado ainda
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            {formData.cursos_adquiridos.map((cursoAdquirido) => {
-                              const curso = cursos.find(c => c.nome === cursoAdquirido.nome);
-                              return (
-                                <div
-                                  key={cursoAdquirido.nome}
-                                  className="p-6 rounded-2xl border-2 bg-muted/30 border-primary/30"
-                                >
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 space-y-3">
-                                      <div>
-                                        <h4 className="font-light text-lg">{cursoAdquirido.nome}</h4>
-                                        {curso?.descricao && (
-                                          <p className="text-xs text-muted-foreground mt-1">{curso.descricao}</p>
-                                        )}
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label className="text-xs font-light">Status de Evolução</Label>
-                                        <Select
-                                          value={cursoAdquirido.status}
-                                          onValueChange={(value) => toggleCursoStatus(cursoAdquirido.nome, value as any)}
-                                        >
-                                          <SelectTrigger className="rounded-xl">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-background z-50">
-                                            <SelectItem value="nao_iniciado">{CURSO_STATUS_LABELS.nao_iniciado}</SelectItem>
-                                            <SelectItem value="em_andamento">{CURSO_STATUS_LABELS.em_andamento}</SelectItem>
-                                            <SelectItem value="pausado">{CURSO_STATUS_LABELS.pausado}</SelectItem>
-                                            <SelectItem value="concluido">{CURSO_STATUS_LABELS.concluido}</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeCurso(cursoAdquirido.nome)}
-                                      className="text-destructive shrink-0"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <div className="p-4 bg-muted/50 rounded-xl">
-                              <p className="text-sm font-light">
-                                <span className="font-poppins" style={{ fontWeight: 700 }}>Total de cursos adquiridos:</span>{" "}
-                                {formData.cursos_adquiridos.length}
-                              </p>
-                              <p className="text-sm font-light mt-1">
-                                <span className="font-poppins" style={{ fontWeight: 700 }}>Cursos concluídos:</span>{" "}
-                                {formData.cursos_adquiridos.filter(c => c.status === 'concluido').length}
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </>
+                      <div className="p-8 text-center border-2 border-dashed rounded-2xl">
+                        <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-sm text-muted-foreground font-light">
+                          Cadastre o aluno primeiro para adicionar cursos
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>

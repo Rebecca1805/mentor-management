@@ -14,7 +14,7 @@ export interface Aluna {
   nome: string;
   email: string;
   curso_atual: string | null;
-  cursos_adquiridos: CursoAdquirido[];
+  cursos_adquiridos?: CursoAdquirido[];
   data_cadastro: string;
   data_primeira_compra: string | null;
   data_ultima_compra: string | null;
@@ -30,7 +30,7 @@ export interface Aluna {
 
 // Helper function to calculate cursos_concluidos
 export const getCursosConcluidos = (aluna: Aluna): number => {
-  return aluna.cursos_adquiridos.filter(c => c.status === 'concluido').length;
+  return (aluna.cursos_adquiridos || []).filter(c => c.status === 'concluido').length;
 };
 
 export interface PlanoAcao {
