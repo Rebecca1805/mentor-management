@@ -10,7 +10,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AlunaDetalhes from "./pages/AlunaDetalhes";
-import FichaAlunaVisualizar from "./pages/FichaAlunaVisualizar";
 import PainelAlunas from "./pages/PainelAlunas";
 import Relatorios from "./pages/Relatorios";
 import BackupRestauracao from "./pages/BackupRestauracao";
@@ -37,7 +36,6 @@ const App = () => (
             <Route path="/acesso-negado" element={<AcessoNegado />} />
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/aluna/:id" element={<ProtectedRoute><Layout><AlunaDetalhes /></Layout></ProtectedRoute>} />
-            <Route path="/aluna/:id/ficha" element={<ProtectedRoute><Layout><FichaAlunaVisualizar /></Layout></ProtectedRoute>} />
             <Route path="/painel-alunas" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/painel-alunas/:id" element={<ProtectedRoute><Layout><PainelAlunas /></Layout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Layout><Relatorios /></Layout></ProtectedRoute>} />

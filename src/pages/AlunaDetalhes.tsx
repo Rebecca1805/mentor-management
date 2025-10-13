@@ -1,28 +1,35 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAluna, usePlanosAcao, useVendas, getCursosConcluidos } from "@/hooks/useAlunas";
+import { useAluna, usePlanosAcao, useVendas } from "@/hooks/useAlunas";
+import { useAlunoCursos } from "@/hooks/useCursos";
 import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
+import { useObservacoesMentora } from "@/hooks/useObservacoesMentora";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, FileText, Plus } from "lucide-react";
+import { ArrowLeft, Download, FileText, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { ObservacoesTableReadOnly } from "@/components/ObservacoesTableReadOnly";
 import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
 import { calcularTempoBase } from "@/lib/utils";
+import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
+import { toast } from "sonner";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: aluna, isLoading } = useAluna(Number(id));
+  const { data: alunoCursos = [] } = useAlunoCursos(Number(id));
   const { data: planos = [] } = usePlanosAcao(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
+  const { data: observacoes = [] } = useObservacoesMentora(Number(id));
   const updatePlano = useUpdatePlanoAcao();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   if (isLoading) {
     return (
@@ -36,10 +43,55 @@ export default function AlunaDetalhes() {
     return <div className="p-8">Aluno não encontrado</div>;
   }
 
-  const cursosConcluidos = getCursosConcluidos(aluna);
-  const progressoCursos = aluna.cursos_adquiridos.length > 0
-    ? (cursosConcluidos / aluna.cursos_adquiridos.length) * 100
+  const cursosConcluidos = alunoCursos.filter(ac => ac.status_evolucao === 'concluido').length;
+  const progressoCursos = alunoCursos.length > 0
+    ? (cursosConcluidos / alunoCursos.length) * 100
     : 0;
+
+  const handleExportCSV = () => {
+    if (!aluna) return;
+    setIsExporting(true);
+    try {
+      exportToCSV(aluna, vendas, observacoes, planos);
+      toast.success("CSV exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!aluna) return;
+    setIsExporting(true);
+    try {
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ficha_${aluna.nome.replace(/\s+/g, '_')}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!aluna) return;
+    setIsSharing(true);
+    try {
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      shareFile(pdfBlob, aluna);
+    } catch (error) {
+      toast.error("Erro ao preparar compartilhamento");
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const vendasPorPeriodo = vendas
     .reduce((acc, venda) => {
@@ -96,10 +148,20 @@ export default function AlunaDetalhes() {
             <span className="text-muted-foreground">{aluna.email}</span>
           </div>
         </div>
-        <Button onClick={() => navigate(`/aluna/${id}/ficha`)}>
-          <FileText className="h-4 w-4 mr-2" />
-          Ver Ficha Completa
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCSV} disabled={isExporting}>
+            <Download className="h-4 w-4 mr-2" />
+            CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPDF} disabled={isExporting}>
+            <FileText className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+          <Button onClick={handleShare} disabled={isSharing}>
+            <Share2 className="h-4 w-4 mr-2" />
+            Compartilhar
+          </Button>
+        </div>
       </div>
 
       <Accordion type="multiple" className="space-y-4" defaultValue={["info", "cursos", "vendas"]}>
@@ -132,8 +194,8 @@ export default function AlunaDetalhes() {
         <AccordionItem value="cursos" className="border rounded-lg px-6">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">Cursos</span>
-              <Badge variant="secondary">{aluna.cursos_adquiridos.length}</Badge>
+              <span className="text-lg font-semibold">Cursos Adquiridos</span>
+              <Badge variant="secondary">{alunoCursos.length}</Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent>
@@ -141,19 +203,30 @@ export default function AlunaDetalhes() {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-muted-foreground">Progresso Geral</span>
-                  <span className="text-sm font-medium">{cursosConcluidos} de {aluna.cursos_adquiridos.length} concluídos</span>
+                  <span className="text-sm font-medium">{cursosConcluidos} de {alunoCursos.length} concluídos</span>
                 </div>
                 <Progress value={progressoCursos} className="h-2" />
               </div>
               <div className="space-y-2">
-                {aluna.cursos_adquiridos.map((curso, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="font-medium">{curso.nome}</span>
-                    <Badge variant={curso.status === "concluido" ? "default" : "outline"}>
-                      {curso.status === "concluido" ? "Concluído" : "Em andamento"}
-                    </Badge>
-                  </div>
-                ))}
+                {alunoCursos.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Nenhum curso adquirido</p>
+                ) : (
+                  alunoCursos.map((alunoCurso: any) => (
+                    <div key={alunoCurso.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{alunoCurso.cursos?.nome || "Curso sem nome"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Adquirido em: {alunoCurso.data_compra ? new Date(alunoCurso.data_compra).toLocaleDateString('pt-BR') : 'Data não informada'}
+                        </p>
+                      </div>
+                      <Badge variant={alunoCurso.status_evolucao === "concluido" ? "default" : "outline"}>
+                        {alunoCurso.status_evolucao === "concluido" ? "Concluído" : 
+                         alunoCurso.status_evolucao === "em_andamento" ? "Em andamento" :
+                         alunoCurso.status_evolucao === "pausado" ? "Pausado" : "Não iniciado"}
+                      </Badge>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </AccordionContent>
@@ -218,84 +291,81 @@ export default function AlunaDetalhes() {
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="observacoes" className="border rounded-lg px-6">
+        <AccordionItem value="planos-observacoes" className="border rounded-lg px-6">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">Observações da Mentora</span>
+              <span className="text-lg font-semibold">Planos de Ação e Observações</span>
+              <Badge variant="secondary">{planos.length + observacoes.length}</Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="pt-4">
-              <ObservacoesTableReadOnly idAluna={Number(id)} />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+            <div className="space-y-6 pt-4">
+              <div>
+                <h3 className="text-md font-semibold mb-3">Observações da Mentora</h3>
+                <ObservacoesTableReadOnly idAluna={Number(id)} />
+              </div>
 
-        <AccordionItem value="planos" className="border rounded-lg px-6">
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">Planos de Ação</span>
-              <Badge variant="secondary">{planos.length}</Badge>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-4 pt-4">
-              {planos.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">Nenhum plano de ação cadastrado</p>
-              ) : (
-                planos.map((plano) => {
-                  const etapas = plano.etapas || [];
-                  const etapasConcluidas = plano.etapas_concluidas || [];
-                  const progresso = etapas.length > 0 ? (etapasConcluidas.length / etapas.length) * 100 : 0;
+              <div>
+                <h3 className="text-md font-semibold mb-3">Planos de Ação</h3>
+                <div className="space-y-4">
+                  {planos.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">Nenhum plano de ação cadastrado</p>
+                  ) : (
+                    planos.map((plano) => {
+                      const etapas = plano.etapas || [];
+                      const etapasConcluidas = plano.etapas_concluidas || [];
+                      const progresso = etapas.length > 0 ? (etapasConcluidas.length / etapas.length) * 100 : 0;
 
-                  return (
-                    <div key={plano.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h4 className="font-semibold">{plano.objetivo}</h4>
-                          <p className="text-sm text-muted-foreground">{plano.resultado_esperado}</p>
-                        </div>
-                        <Badge variant={plano.data_fim_real ? "default" : "outline"}>
-                          {plano.data_fim_real ? "Concluído" : "Em andamento"}
-                        </Badge>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Progresso</span>
-                          <span className="font-medium">{etapasConcluidas.length} de {etapas.length} etapas</span>
-                        </div>
-                        <Progress value={progresso} className="h-2" />
-                      </div>
-
-                      {etapas.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">Etapas:</p>
-                          {etapas.map((etapa, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <Checkbox
-                                checked={etapasConcluidas.includes(etapa)}
-                                onCheckedChange={() => toggleEtapa(plano.id, etapa, etapasConcluidas)}
-                                disabled={!!plano.data_fim_real}
-                              />
-                              <span className={etapasConcluidas.includes(etapa) ? "line-through text-muted-foreground" : ""}>
-                                {etapa}
-                              </span>
+                      return (
+                        <div key={plano.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <h4 className="font-semibold">{plano.objetivo}</h4>
+                              <p className="text-sm text-muted-foreground">{plano.resultado_esperado}</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <Badge variant={plano.data_fim_real ? "default" : "outline"}>
+                              {plano.data_fim_real ? "Concluído" : "Em andamento"}
+                            </Badge>
+                          </div>
 
-                      {plano.resultados_obtidos && (
-                        <div className="pt-2 border-t">
-                          <p className="text-sm font-medium mb-1">Resultados Obtidos:</p>
-                          <p className="text-sm text-muted-foreground">{plano.resultados_obtidos}</p>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Progresso</span>
+                              <span className="font-medium">{etapasConcluidas.length} de {etapas.length} etapas</span>
+                            </div>
+                            <Progress value={progresso} className="h-2" />
+                          </div>
+
+                          {etapas.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">Etapas:</p>
+                              {etapas.map((etapa, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={etapasConcluidas.includes(etapa)}
+                                    onCheckedChange={() => toggleEtapa(plano.id, etapa, etapasConcluidas)}
+                                    disabled={!!plano.data_fim_real}
+                                  />
+                                  <span className={etapasConcluidas.includes(etapa) ? "line-through text-muted-foreground" : ""}>
+                                    {etapa}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {plano.resultados_obtidos && (
+                            <div className="pt-2 border-t">
+                              <p className="text-sm font-medium mb-1">Resultados Obtidos:</p>
+                              <p className="text-sm text-muted-foreground">{plano.resultados_obtidos}</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>

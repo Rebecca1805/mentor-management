@@ -3,7 +3,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Aluna, getCursosConcluidos } from "@/hooks/useAlunas";
+import { Aluna } from "@/hooks/useAlunas";
+import { useAlunoCursos } from "@/hooks/useCursos";
 import { BookOpen, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { calcularTempoBase } from "@/lib/utils";
@@ -15,10 +16,11 @@ interface AlunaCardProps {
 
 export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
   const navigate = useNavigate();
+  const { data: alunoCursos = [] } = useAlunoCursos(aluna.id);
   
-  const cursosConcluidosCount = getCursosConcluidos(aluna);
-  const progressoPercentual = aluna.cursos_adquiridos.length > 0
-    ? (cursosConcluidosCount / aluna.cursos_adquiridos.length) * 100
+  const cursosConcluidosCount = alunoCursos.filter(ac => ac.status_evolucao === 'concluido').length;
+  const progressoPercentual = alunoCursos.length > 0
+    ? (cursosConcluidosCount / alunoCursos.length) * 100
     : 0;
 
   return (
@@ -63,7 +65,7 @@ export const AlunaCard = ({ aluna, index }: AlunaCardProps) => {
             </div>
             <Progress value={progressoPercentual} className="h-2" />
             <p className="text-xs text-muted-foreground font-light">
-              {cursosConcluidosCount} de {aluna.cursos_adquiridos.length} concluídos
+              {cursosConcluidosCount} de {alunoCursos.length} concluídos
             </p>
           </div>
 
