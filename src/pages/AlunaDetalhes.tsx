@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAluna, useVendas } from "@/hooks/useAlunas";
 import { useAlunoCursos } from "@/hooks/useCursos";
 import { useObservacoesMentora } from "@/hooks/useObservacoesMentora";
+import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -24,6 +25,7 @@ export default function AlunaDetalhes() {
   const { data: alunoCursos = [] } = useAlunoCursos(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
   const { data: observacoes = [] } = useObservacoesMentora(Number(id));
+  const { data: profile } = useProfile();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
@@ -48,7 +50,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsExporting(true);
     try {
-      exportToCSV(aluna, vendas, observacoes, []);
+      exportToCSV(aluna, vendas, observacoes, [], alunoCursos);
       toast.success("CSV exportado com sucesso!");
     } catch (error) {
       toast.error("Erro ao exportar CSV");
@@ -61,7 +63,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsExporting(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas);
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -80,7 +82,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsSharing(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas);
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos);
       shareFile(pdfBlob, aluna);
     } catch (error) {
       toast.error("Erro ao preparar compartilhamento");
@@ -188,13 +190,6 @@ export default function AlunaDetalhes() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4 pt-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">Progresso Geral</span>
-                  <span className="text-sm font-medium">{cursosConcluidos} de {alunoCursos.length} concluídos</span>
-                </div>
-                <Progress value={progressoCursos} className="h-2" />
-              </div>
               <div className="space-y-2">
                 {alunoCursos.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">Nenhum curso adquirido</p>

@@ -7,7 +7,8 @@ export const exportToCSV = async (
   aluna: Aluna,
   vendas: Venda[],
   observacoes: ObservacaoMentora[],
-  planos: PlanoAcao[]
+  planos: PlanoAcao[],
+  alunoCursos: any[] = []
 ) => {
   const fileName = `ficha_${aluna.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
   
@@ -25,11 +26,11 @@ export const exportToCSV = async (
   // Cursos Adquiridos
   csvContent += "CURSOS ADQUIRIDOS\n";
   csvContent += "Nome do Curso,Status\n";
-  aluna.cursos_adquiridos.forEach(curso => {
-    const status = curso.status === 'concluido' ? 'Concluído' :
-                   curso.status === 'em_andamento' ? 'Em Andamento' :
-                   curso.status === 'pausado' ? 'Pausado' : 'Não Iniciado';
-    csvContent += `${curso.nome},${status}\n`;
+  alunoCursos.forEach((alunoCurso: any) => {
+    const status = alunoCurso.status_evolucao === 'concluido' ? 'Concluído' :
+                   alunoCurso.status_evolucao === 'em_andamento' ? 'Em Andamento' :
+                   alunoCurso.status_evolucao === 'pausado' ? 'Pausado' : 'Não Iniciado';
+    csvContent += `${alunoCurso.cursos?.nome || 'Curso sem nome'},${status}\n`;
   });
   csvContent += "\n";
   
@@ -84,7 +85,8 @@ export const exportToPDF = async (
   planos: PlanoAcao[],
   cursosConcluidos: number,
   totalVendas: number,
-  mentorName: string = "N/A"
+  mentorName: string = "N/A",
+  alunoCursos: any[] = []
 ): Promise<Blob> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -129,12 +131,12 @@ export const exportToPDF = async (
   doc.text("CURSOS ADQUIRIDOS", 14, yPos);
   yPos += 8;
   
-  if (aluna.cursos_adquiridos.length > 0) {
-    const cursosData = aluna.cursos_adquiridos.map(curso => {
-      const status = curso.status === 'concluido' ? 'Concluído' :
-                     curso.status === 'em_andamento' ? 'Em Andamento' :
-                     curso.status === 'pausado' ? 'Pausado' : 'Não Iniciado';
-      return [curso.nome, status];
+  if (alunoCursos.length > 0) {
+    const cursosData = alunoCursos.map((alunoCurso: any) => {
+      const status = alunoCurso.status_evolucao === 'concluido' ? 'Concluído' :
+                     alunoCurso.status_evolucao === 'em_andamento' ? 'Em Andamento' :
+                     alunoCurso.status_evolucao === 'pausado' ? 'Pausado' : 'Não Iniciado';
+      return [alunoCurso.cursos?.nome || 'Curso sem nome', status];
     });
     
     autoTable(doc, {
@@ -150,7 +152,7 @@ export const exportToPDF = async (
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`${cursosConcluidos} de ${aluna.cursos_adquiridos.length} cursos concluídos`, 14, yPos);
+    doc.text(`${cursosConcluidos} de ${alunoCursos.length} cursos concluídos`, 14, yPos);
     yPos += 10;
   } else {
     doc.setFont("helvetica", "normal");
