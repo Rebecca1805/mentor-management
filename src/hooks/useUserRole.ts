@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useUserRole() {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ["user-role"],
+    queryKey: ["user-role", user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { isAdmin: false, isLoading: false };
 
       const { data, error } = await supabase
@@ -18,8 +20,8 @@ export function useUserRole() {
 
       return { isAdmin: data === true, isLoading: false };
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnMount: false,
   });
 }

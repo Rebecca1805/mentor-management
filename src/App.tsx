@@ -19,7 +19,16 @@ import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import AcessoNegado from "./pages/AcessoNegado";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minuto padrão
+      gcTime: 5 * 60 * 1000, // 5 minutos no cache
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

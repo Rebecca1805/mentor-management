@@ -94,10 +94,6 @@ export const useAluna = (id?: number) => {
       if (error) throw error;
       return {
         ...data,
-        cursos_adquiridos: (data.cursos_adquiridos as any[])?.map((c: any) => ({
-          nome: c.nome || '',
-          status: c.status || 'nao_iniciado'
-        })) || [],
         principais_dificuldades: Array.isArray(data.principais_dificuldades)
           ? data.principais_dificuldades
           : [],

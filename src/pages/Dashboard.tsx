@@ -13,9 +13,7 @@ export default function Dashboard() {
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const { data: stats, isLoading: isLoadingStats } = useMentorStats();
 
-  const isLoading = isLoadingProfile || isLoadingStats;
-
-  if (isLoading) {
+  if (isLoadingProfile) {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
@@ -133,6 +131,13 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Estatísticas Rápidas */}
+      {isLoadingStats ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -227,6 +232,7 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </div>
+      )}
 
       {/* Informações do Desenvolvedor */}
       <motion.div

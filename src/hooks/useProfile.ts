@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Profile {
   id: string;
@@ -16,10 +17,11 @@ export interface Profile {
 }
 
 export function useProfile() {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ["profile"],
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -31,9 +33,10 @@ export function useProfile() {
       if (error) throw error;
       return data as Profile;
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
   });
 }
 
