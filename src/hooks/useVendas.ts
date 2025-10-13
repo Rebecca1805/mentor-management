@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Venda } from "./useAlunas";
+import type { Venda } from "./useAlunas";
 import { showSuccessToast, showErrorToast } from "@/lib/toastHelpers";
 
 export const useCreateVenda = () => {

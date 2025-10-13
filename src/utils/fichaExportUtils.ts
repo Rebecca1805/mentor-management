@@ -1,5 +1,5 @@
-import { Aluna, Venda, PlanoAcao } from "@/hooks/useAlunas";
-import { ObservacaoMentora } from "@/hooks/useObservacoesMentora";
+import type { Aluna, Venda, PlanoAcao } from "@/hooks/useAlunas";
+import type { ObservacaoMentora } from "@/hooks/useObservacoesMentora";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 

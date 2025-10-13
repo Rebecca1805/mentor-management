@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PlanoAcao } from "./useAlunas";
+import type { PlanoAcao } from "./useAlunas";
 
 export const useCreatePlanoAcao = () => {
   const queryClient = useQueryClient();
