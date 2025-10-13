@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAluna, useVendas } from "@/hooks/useAlunas";
 import { useAlunoCursos } from "@/hooks/useCursos";
@@ -17,6 +17,7 @@ import { AlunaDetalhesSkeleton } from "@/components/LoadingSkeletons";
 import { calcularTempoBase } from "@/lib/utils";
 import { exportToCSV, exportToPDF, shareFile } from "@/utils/fichaExportUtils";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
 
 export default function AlunaDetalhes() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function AlunaDetalhes() {
   const { data: profile } = useProfile();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) {
     return (
@@ -46,6 +48,26 @@ export default function AlunaDetalhes() {
     ? (cursosConcluidos / alunoCursos.length) * 100
     : 0;
 
+  const captureChart = async (): Promise<string | null> => {
+    if (!chartRef.current || vendasPorPeriodo.length === 0) {
+      return null;
+    }
+
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('Erro ao capturar gráfico:', error);
+      return null;
+    }
+  };
+
   const handleExportCSV = () => {
     if (!aluna) return;
     setIsExporting(true);
@@ -63,7 +85,8 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsExporting(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos);
+      const chartImage = await captureChart();
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos, chartImage);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -82,7 +105,8 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsSharing(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos);
+      const chartImage = await captureChart();
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas, profile?.full_name || "Não informado", alunoCursos, chartImage);
       shareFile(pdfBlob, aluna);
     } catch (error) {
       toast.error("Erro ao preparar compartilhamento");
@@ -225,7 +249,7 @@ export default function AlunaDetalhes() {
           <AccordionContent>
             <div className="space-y-4 pt-4">
               {vendasPorPeriodo.length > 0 && (
-                <div className="h-[300px]">
+                <div ref={chartRef} className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={vendasPorPeriodo}>
                       <CartesianGrid strokeDasharray="3 3" />

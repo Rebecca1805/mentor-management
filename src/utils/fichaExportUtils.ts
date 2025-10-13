@@ -86,7 +86,8 @@ export const exportToPDF = async (
   cursosConcluidos: number,
   totalVendas: number,
   mentorName: string = "N/A",
-  alunoCursos: any[] = []
+  alunoCursos: any[] = [],
+  chartImage: string | null = null
 ): Promise<Blob> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -244,13 +245,37 @@ export const exportToPDF = async (
   doc.text("VENDAS", 14, yPos);
   yPos += 8;
   
-  // Nota sobre gráfico
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
-  doc.setTextColor(100);
-  doc.text("Nota: O gráfico de evolução de vendas está disponível na visualização online da ficha.", 14, yPos);
-  yPos += 8;
-  doc.setTextColor(0);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Total de Vendas: R$ ${totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, yPos);
+  yPos += 10;
+  
+  // Inserir gráfico se disponível
+  if (chartImage) {
+    const imageHeight = 80;
+    if (yPos + imageHeight > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    try {
+      doc.addImage(chartImage, 'PNG', 14, yPos, 180, imageHeight);
+      yPos += imageHeight + 10;
+    } catch (error) {
+      console.error('Erro ao adicionar imagem ao PDF:', error);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.text("Gráfico não disponível", 14, yPos);
+      yPos += 10;
+    }
+  } else if (vendas.length > 0) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Gráfico de evolução de vendas", 14, yPos);
+    yPos += 8;
+    doc.setTextColor(0);
+  }
   
   if (vendas.length > 0) {
     const vendasData = vendas.map(venda => [
