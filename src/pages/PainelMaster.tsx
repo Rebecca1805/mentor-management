@@ -7,10 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, PauseCircle, UserCheck, Edit2, Save, X } from "lucide-react";
+import { CheckCircle, XCircle, PauseCircle, UserCheck, Edit2, Save, X, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
+import { useAdminDeleteUser } from "@/hooks/useAdminDeleteUser";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type EditingState = {
   [userId: string]: {
@@ -23,8 +34,11 @@ export default function PainelMaster() {
   const { user } = useAuth();
   const { data: profiles = [], isLoading } = useAllProfiles();
   const updateProfile = useUpdateProfile();
+  const deleteUser = useAdminDeleteUser();
   const [editingUsers, setEditingUsers] = useState<Record<string, boolean>>({});
   const [editingState, setEditingState] = useState<EditingState>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
   const startEditing = (userId: string, currentPlan: string, currentExpiration: string | null) => {
     setEditingUsers(prev => ({ ...prev, [userId]: true }));
@@ -81,6 +95,19 @@ export default function PainelMaster() {
 
     updateProfile.mutate(updateData);
     cancelEditing(userId);
+  };
+
+  const handleDeleteClick = (userId: string) => {
+    setUserToDelete(userId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      deleteUser.mutate(userToDelete);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
   };
 
   const getPlanLabel = (plan: string) => {
@@ -300,6 +327,15 @@ export default function PainelMaster() {
                           <XCircle className="h-4 w-4 mr-2" />
                           Recusar
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteClick(profile.user_id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </Button>
                       </>
                     ) : profile.status === 'ativa' ? (
                       <>
@@ -328,6 +364,15 @@ export default function PainelMaster() {
                             >
                               <XCircle className="h-4 w-4 mr-2" />
                               Desativar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteClick(profile.user_id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
                             </Button>
                           </>
                         ) : (
@@ -382,6 +427,15 @@ export default function PainelMaster() {
                             </Button>
                           </div>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteClick(profile.user_id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </Button>
                       </>
                     ) : profile.status === 'inativa' ? (
                       <>
@@ -414,6 +468,15 @@ export default function PainelMaster() {
                             </Button>
                           </div>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteClick(profile.user_id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </Button>
                       </>
                     ) : null}
                   </div>
@@ -435,6 +498,26 @@ export default function PainelMaster() {
           </Card>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. Todos os dados do usuário (alunas, cursos, vendas, planos de ação, etc.) serão permanentemente removidos da plataforma.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
