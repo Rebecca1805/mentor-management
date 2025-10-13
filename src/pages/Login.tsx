@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { signIn } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -22,7 +23,47 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          toast.error("Email não confirmado. Verifique sua caixa de entrada.");
+        } else if (error.message.includes("Invalid login credentials")) {
+          toast.error("Email ou senha incorretos. Verifique suas credenciais.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      // Verificar se o usuário está aprovado
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("user_id", data.user.id)
+        .single();
+
+      if (profileError) {
+        toast.error("Erro ao verificar perfil do usuário.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      if (profile?.status === "pendente") {
+        await supabase.auth.signOut();
+        toast.error("Sua conta ainda está aguardando aprovação.");
+        return;
+      }
+
+      if (profile?.status === "suspensa" || profile?.status === "inativa") {
+        await supabase.auth.signOut();
+        toast.error("Sua conta foi suspensa ou inativada. Entre em contato com o suporte.");
+        return;
+      }
+
       toast.success("Login realizado com sucesso!");
       navigate("/dashboard");
     } catch (error: any) {
