@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAluna, usePlanosAcao, useVendas } from "@/hooks/useAlunas";
+import { useAluna, useVendas } from "@/hooks/useAlunas";
 import { useAlunoCursos } from "@/hooks/useCursos";
-import { useUpdatePlanoAcao } from "@/hooks/usePlanosAcao";
 import { useObservacoesMentora } from "@/hooks/useObservacoesMentora";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Download, FileText, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -24,10 +22,8 @@ export default function AlunaDetalhes() {
   const navigate = useNavigate();
   const { data: aluna, isLoading } = useAluna(Number(id));
   const { data: alunoCursos = [] } = useAlunoCursos(Number(id));
-  const { data: planos = [] } = usePlanosAcao(Number(id));
   const { data: vendas = [] } = useVendas(Number(id));
   const { data: observacoes = [] } = useObservacoesMentora(Number(id));
-  const updatePlano = useUpdatePlanoAcao();
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
@@ -52,7 +48,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsExporting(true);
     try {
-      exportToCSV(aluna, vendas, observacoes, planos);
+      exportToCSV(aluna, vendas, observacoes, []);
       toast.success("CSV exportado com sucesso!");
     } catch (error) {
       toast.error("Erro ao exportar CSV");
@@ -65,7 +61,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsExporting(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -84,7 +80,7 @@ export default function AlunaDetalhes() {
     if (!aluna) return;
     setIsSharing(true);
     try {
-      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, planos, cursosConcluidos, totalVendas);
+      const pdfBlob = await exportToPDF(aluna, vendas, observacoes, [], cursosConcluidos, totalVendas);
       shareFile(pdfBlob, aluna);
     } catch (error) {
       toast.error("Erro ao preparar compartilhamento");
@@ -113,14 +109,6 @@ export default function AlunaDetalhes() {
     });
 
   const totalVendas = vendas.reduce((sum, v) => sum + v.valor_vendido, 0);
-
-  const toggleEtapa = (planoId: number, etapa: string, etapasConcluidas: string[]) => {
-    const novasEtapas = etapasConcluidas.includes(etapa)
-      ? etapasConcluidas.filter(e => e !== etapa)
-      : [...etapasConcluidas, etapa];
-    
-    updatePlano.mutate({ id: planoId, etapas_concluidas: novasEtapas });
-  };
 
   return (
     <motion.div
@@ -295,77 +283,12 @@ export default function AlunaDetalhes() {
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold">Planos de Ação e Observações</span>
-              <Badge variant="secondary">{planos.length + observacoes.length}</Badge>
+              <Badge variant="secondary">{observacoes.length}</Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-6 pt-4">
-              <div>
-                <h3 className="text-md font-semibold mb-3">Observações da Mentora</h3>
-                <ObservacoesTableReadOnly idAluna={Number(id)} />
-              </div>
-
-              <div>
-                <h3 className="text-md font-semibold mb-3">Planos de Ação</h3>
-                <div className="space-y-4">
-                  {planos.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">Nenhum plano de ação cadastrado</p>
-                  ) : (
-                    planos.map((plano) => {
-                      const etapas = plano.etapas || [];
-                      const etapasConcluidas = plano.etapas_concluidas || [];
-                      const progresso = etapas.length > 0 ? (etapasConcluidas.length / etapas.length) * 100 : 0;
-
-                      return (
-                        <div key={plano.id} className="border rounded-lg p-4 space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <h4 className="font-semibold">{plano.objetivo}</h4>
-                              <p className="text-sm text-muted-foreground">{plano.resultado_esperado}</p>
-                            </div>
-                            <Badge variant={plano.data_fim_real ? "default" : "outline"}>
-                              {plano.data_fim_real ? "Concluído" : "Em andamento"}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Progresso</span>
-                              <span className="font-medium">{etapasConcluidas.length} de {etapas.length} etapas</span>
-                            </div>
-                            <Progress value={progresso} className="h-2" />
-                          </div>
-
-                          {etapas.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-sm font-medium">Etapas:</p>
-                              {etapas.map((etapa, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <Checkbox
-                                    checked={etapasConcluidas.includes(etapa)}
-                                    onCheckedChange={() => toggleEtapa(plano.id, etapa, etapasConcluidas)}
-                                    disabled={!!plano.data_fim_real}
-                                  />
-                                  <span className={etapasConcluidas.includes(etapa) ? "line-through text-muted-foreground" : ""}>
-                                    {etapa}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {plano.resultados_obtidos && (
-                            <div className="pt-2 border-t">
-                              <p className="text-sm font-medium mb-1">Resultados Obtidos:</p>
-                              <p className="text-sm text-muted-foreground">{plano.resultados_obtidos}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+            <div className="pt-4">
+              <ObservacoesTableReadOnly idAluna={Number(id)} />
             </div>
           </AccordionContent>
         </AccordionItem>
