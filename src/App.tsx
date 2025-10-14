@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -32,7 +33,7 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    
+    <ErrorBoundary>
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -55,7 +56,7 @@ const App = () => (
           </Routes>
         </AuthProvider>
       </BrowserRouter>
-    
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

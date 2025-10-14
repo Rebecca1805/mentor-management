@@ -38,8 +38,8 @@ export default function PainelAlunas() {
   
   const { data: alunas, isLoading } = useAlunas();
   const { data: aluna } = useAluna(id ? Number(id) : undefined);
-  const { data: cursos = [] } = useCursos();
-  const { data: alunoCursos = [] } = useAlunoCursos(id ? Number(id) : 0);
+  const { data: cursos = [], isLoading: isLoadingCursos } = useCursos();
+  const { data: alunoCursos = [], isLoading: isLoadingAlunoCursos } = useAlunoCursos(id ? Number(id) : undefined);
   const createAluna = useCreateAluna();
   const updateAluna = useUpdateAluna();
   const deleteAluna = useDeleteAluna();
@@ -306,39 +306,81 @@ export default function PainelAlunas() {
                       Selecione os cursos que o aluno adquiriu
                     </p>
                       {isEdit ? (
-                        <Select
-                          value=""
-                          onValueChange={async (value) => {
-                            const curso = cursos.find(c => c.nome === value);
-                            if (!curso) return;
-                            if (alunoCursos.some((ac: any) => ac.id_curso === curso.id)) return;
-                            const today = new Date();
-                            const yyyy = today.getFullYear();
-                            const mm = String(today.getMonth() + 1).padStart(2, '0');
-                            const dd = String(today.getDate()).padStart(2, '0');
-                            await createAlunoCurso.mutateAsync({
-                              id_aluna: Number(id),
-                              id_curso: curso.id,
-                              id_versao: null,
-                              status_evolucao: 'nao_iniciado',
-                              data_compra: `${yyyy}-${mm}-${dd}`,
-                            } as any);
-                          }}
-                        >
-                          <SelectTrigger className="rounded-xl">
-                            <SelectValue placeholder="Selecione um curso para adicionar" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background z-50">
-                            {cursos
-                              .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
-                              .map((curso) => (
-                                <SelectItem key={curso.id} value={curso.nome}>
-                                  {curso.nome}
-                                </SelectItem>
-                              ))
-                            }
-                          </SelectContent>
-                        </Select>
+                        <>
+                          {createAlunoCurso.isPending && (
+                            <div className="p-4 bg-primary/10 rounded-xl border border-primary/20 mb-4">
+                              <p className="text-sm text-primary font-light">
+                                Adicionando curso...
+                              </p>
+                            </div>
+                          )}
+                          {isLoadingCursos || isLoadingAlunoCursos ? (
+                            <div className="p-4 bg-muted/50 rounded-xl">
+                              <p className="text-sm text-muted-foreground font-light">
+                                Carregando cursos disponíveis...
+                              </p>
+                            </div>
+                          ) : cursos.length === 0 ? (
+                            <div className="p-4 bg-muted/50 rounded-xl">
+                              <p className="text-sm text-muted-foreground font-light">
+                                Nenhum curso cadastrado. Cadastre cursos em "Catálogo de Cursos" primeiro.
+                              </p>
+                            </div>
+                          ) : (
+                            <Select
+                              value=""
+                              onValueChange={async (value) => {
+                                try {
+                                  const curso = cursos.find(c => c.nome === value);
+                                  if (!curso) {
+                                    toast.error("Curso não encontrado");
+                                    return;
+                                  }
+                                  if (alunoCursos.some((ac: any) => ac.id_curso === curso.id)) {
+                                    toast.error("Este curso já foi adicionado");
+                                    return;
+                                  }
+                                  const today = new Date();
+                                  const yyyy = today.getFullYear();
+                                  const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                  const dd = String(today.getDate()).padStart(2, '0');
+                                  await createAlunoCurso.mutateAsync({
+                                    id_aluna: Number(id),
+                                    id_curso: curso.id,
+                                    id_versao: null,
+                                    status_evolucao: 'nao_iniciado',
+                                    data_compra: `${yyyy}-${mm}-${dd}`,
+                                  } as any);
+                                  toast.success("Curso adicionado com sucesso!");
+                                } catch (error: any) {
+                                  console.error("Erro ao adicionar curso:", error);
+                                  toast.error(error.message || "Erro ao adicionar curso");
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="rounded-xl">
+                                <SelectValue placeholder="Selecione um curso para adicionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background z-50">
+                                {cursos
+                                  .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
+                                  .length === 0 ? (
+                                  <div className="p-2 text-sm text-muted-foreground">
+                                    Todos os cursos já foram adicionados
+                                  </div>
+                                ) : (
+                                  cursos
+                                    .filter(curso => !alunoCursos.some((ac: any) => ac.id_curso === curso.id))
+                                    .map((curso) => (
+                                      <SelectItem key={curso.id} value={curso.nome}>
+                                        {curso.nome}
+                                      </SelectItem>
+                                    ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
                       ) : (
                         <p className="text-sm text-muted-foreground font-light p-4 bg-muted/50 rounded-xl">
                           Os cursos podem ser adicionados após cadastrar o aluno

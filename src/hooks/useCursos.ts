@@ -70,10 +70,12 @@ export const useCursoVersoes = (idCurso?: number) => {
   });
 };
 
-export const useAlunoCursos = (idAluna: number) => {
+export const useAlunoCursos = (idAluna?: number) => {
   return useQuery({
     queryKey: ["aluno_cursos", idAluna],
     queryFn: async () => {
+      if (!idAluna) return [];
+
       const { data, error } = await supabase
         .from("aluno_cursos")
         .select(`
