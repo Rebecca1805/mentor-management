@@ -53,6 +53,7 @@ export default function PainelAlunas() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [deletingAlunaId, setDeletingAlunaId] = useState<number | null>(null);
+  const [updatingCursoId, setUpdatingCursoId] = useState<number | null>(null);
   
   const isEdit = !!id;
 
@@ -153,6 +154,15 @@ export default function PainelAlunas() {
       principais_dificuldades: [],
       observacoes_mentora: "",
     });
+  };
+
+  const updateWithTimeout = async (updateFn: () => Promise<any>, timeoutMs = 5000) => {
+    return Promise.race([
+      updateFn(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: A operação demorou muito')), timeoutMs)
+      )
+    ]);
   };
 
   const handleEdit = (alunaId: number) => {
@@ -401,11 +411,18 @@ export default function PainelAlunas() {
                         </div>
                       ) : (
                         <>
-                          {alunoCursos.map((ac: any) => (
-                            <div
-                              key={ac.id}
-                              className="p-6 rounded-2xl border-2 bg-muted/30 border-primary/30"
-                            >
+                {alunoCursos.map((ac: any) => (
+                  <div
+                    key={ac.id}
+                    className={`p-6 rounded-2xl border-2 bg-muted/30 border-primary/30 ${
+                      updatingCursoId === ac.id ? 'opacity-60 pointer-events-none' : ''
+                    }`}
+                  >
+                    {updatingCursoId === ac.id && (
+                      <div className="mb-3 p-2 bg-primary/10 rounded-lg text-xs text-primary text-center">
+                        Atualizando...
+                      </div>
+                    )}
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 space-y-3">
                                   <div>
@@ -419,7 +436,27 @@ export default function PainelAlunas() {
                                       <Label className="text-xs font-light">Status de Evolução</Label>
                                       <Select
                                         value={ac.status_evolucao}
-                                        onValueChange={(value) => updateAlunoCurso.mutateAsync({ id: ac.id, status_evolucao: value as any })}
+                                        disabled={updatingCursoId === ac.id}
+                                        onValueChange={async (value) => {
+                                          setUpdatingCursoId(ac.id);
+                                          try {
+                                            await updateWithTimeout(() =>
+                                              updateAlunoCurso.mutateAsync({ 
+                                                id: ac.id, 
+                                                status_evolucao: value as any 
+                                              })
+                                            );
+                                          } catch (error: any) {
+                                            console.error("Erro ao atualizar status:", error);
+                                            if (error.message?.includes('Timeout')) {
+                                              toast.error("A atualização está demorando muito. Tente novamente.");
+                                            } else {
+                                              toast.error(error.message || "Erro ao atualizar status do curso");
+                                            }
+                                          } finally {
+                                            setUpdatingCursoId(null);
+                                          }
+                                        }}
                                       >
                                         <SelectTrigger className="rounded-xl">
                                           <SelectValue />
@@ -437,7 +474,27 @@ export default function PainelAlunas() {
                                       <Input
                                         type="date"
                                         value={ac.data_compra ? ac.data_compra.substring(0,10) : ''}
-                                        onChange={(e) => updateAlunoCurso.mutateAsync({ id: ac.id, data_compra: e.target.value })}
+                                        disabled={updatingCursoId === ac.id}
+                                        onChange={async (e) => {
+                                          setUpdatingCursoId(ac.id);
+                                          try {
+                                            await updateWithTimeout(() =>
+                                              updateAlunoCurso.mutateAsync({ 
+                                                id: ac.id, 
+                                                data_compra: e.target.value 
+                                              })
+                                            );
+                                          } catch (error: any) {
+                                            console.error("Erro ao atualizar data:", error);
+                                            if (error.message?.includes('Timeout')) {
+                                              toast.error("A atualização está demorando muito. Tente novamente.");
+                                            } else {
+                                              toast.error(error.message || "Erro ao atualizar data de contratação");
+                                            }
+                                          } finally {
+                                            setUpdatingCursoId(null);
+                                          }
+                                        }}
                                         className="rounded-xl font-light"
                                       />
                                     </div>
@@ -447,7 +504,24 @@ export default function PainelAlunas() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => deleteAlunoCurso.mutateAsync(ac.id)}
+                                  disabled={updatingCursoId === ac.id}
+                                  onClick={async () => {
+                                    setUpdatingCursoId(ac.id);
+                                    try {
+                                      await updateWithTimeout(() =>
+                                        deleteAlunoCurso.mutateAsync(ac.id)
+                                      );
+                                    } catch (error: any) {
+                                      console.error("Erro ao remover curso:", error);
+                                      if (error.message?.includes('Timeout')) {
+                                        toast.error("A remoção está demorando muito. Tente novamente.");
+                                      } else {
+                                        toast.error(error.message || "Erro ao remover curso");
+                                      }
+                                    } finally {
+                                      setUpdatingCursoId(null);
+                                    }
+                                  }}
                                   className="text-destructive shrink-0"
                                 >
                                   <X className="h-4 w-4" />

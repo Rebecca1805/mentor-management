@@ -264,6 +264,8 @@ export const useUpdateAlunoCurso = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...alunoCurso }: Partial<AlunoCurso> & { id: number }) => {
+      console.log("Atualizando aluno_curso:", { id, ...alunoCurso });
+      
       const { data, error } = await supabase
         .from("aluno_cursos")
         .update(alunoCurso)
@@ -271,15 +273,30 @@ export const useUpdateAlunoCurso = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro no update aluno_cursos:", error);
+        throw error;
+      }
+      
+      console.log("Aluno_curso atualizado com sucesso:", data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log("onSuccess - invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["aluno_cursos"] });
-      showSuccessToast("Status do curso atualizado!");
+      
+      // Mensagem mais específica baseada no que foi atualizado
+      if (variables.status_evolucao) {
+        showSuccessToast("Status do curso atualizado!");
+      } else if (variables.data_compra) {
+        showSuccessToast("Data de contratação atualizada!");
+      } else {
+        showSuccessToast("Curso atualizado!");
+      }
     },
     onError: (error: any) => {
-      showErrorToast(error.message || "Erro ao atualizar status");
+      console.error("onError mutation:", error);
+      showErrorToast(error.message || "Erro ao atualizar curso");
     },
   });
 };
