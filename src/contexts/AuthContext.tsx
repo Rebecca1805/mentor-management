@@ -29,26 +29,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initAuth = async () => {
+      console.log("🔹 Verificando sessão ativa...");
+      const { data, error } = await supabase.auth.getSession();
 
-    // Listen for auth changes
+      if (error) {
+        console.error("Erro ao obter sessão:", error.message);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
+      setLoading(false);
+
+      console.log("🔹 Usuário inicial:", sessionUser);
+    };
+
+    initAuth();
+
+    // Listener para mudanças de autenticação
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🌀 Evento de auth:", event);
+      const newUser = session?.user ?? null;
+
+      setUser(newUser);
       setLoading(false);
-      
-      // Invalidar queries ao mudar autenticação
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      queryClient.invalidateQueries({ queryKey: ["user-role"] });
-      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
+
+      // Limpa cache se o user mudou
+      queryClient.invalidateQueries();
+
+      // Se o usuário deslogar, leva pra login
+      if (event === "SIGNED_OUT" || !newUser) {
+        navigate("/login");
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate, queryClient]);
 
   return (
