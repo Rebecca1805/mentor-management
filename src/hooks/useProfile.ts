@@ -66,4 +66,8 @@ export function useAllUsuarios() {
 
       return data as Usuario[];
     },
-    stale
+    staleTime: 0, // ✅ aqui estava "stale"
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+}
